@@ -345,7 +345,6 @@ func drawstatus(uid int64, botname string) (sendimg []byte, err error) {
 
 		milen := len(moreinfo)
 		for i, v := range moreinfo {
-
 			err = moreinfocard.LoadFontFace(text.GlowSansFontFile, 32)
 			if err != nil {
 				return
