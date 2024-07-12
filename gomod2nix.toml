@@ -229,24 +229,30 @@ schema = 3
   [mod."gitlab.com/gomidi/midi/v2"]
     version = "v2.1.7"
     hash = "sha256-fbgxSMCk7PVII3sNEKuGWbN56fy3eM564Xb+lnYTxRQ="
-  [mod."golang.org/x/exp"]
-    version = "v0.0.0-20190306152737-a1d7652674e8"
-    hash = "sha256-VJ0sxFsqnx2O/NmXamL2F5bQeUw5sizVQ7NLusceK5Q="
+  [mod."golang.org/x/exp/shiny"]
+    version = "v0.0.0-20240707233637-46b078467d37"
+    hash = "sha256-mejC1IeK7WnxQ9I2Z7WdmpDXIMKUYIE4Lh6WfqNtBpg="
   [mod."golang.org/x/image"]
     version = "v0.16.0"
     hash = "sha256-+BOLefaFM/c+AV3kmnNvztbhZ+a9GCNwkEya8hZSKYg="
   [mod."golang.org/x/mobile"]
-    version = "v0.0.0-20190415191353-3e0bab5405d6"
-    hash = "sha256-Ds7JS9muxzDc7WgCncAd0rMSFeBI88/I0dQsk13/56k="
+    version = "v0.0.0-20231127183840-76ac6878050a"
+    hash = "sha256-GdXSvrqQiJX6pOqc2Yr8gG0ZWysEE81YRl5qkt3JCMA="
+  [mod."golang.org/x/mod"]
+    version = "v0.17.0"
+    hash = "sha256-CLaPeF6uTFuRDv4oHwOQE6MCMvrzkUjWN3NuyywZjKU="
   [mod."golang.org/x/net"]
-    version = "v0.24.0"
-    hash = "sha256-w1c21ljta5wNIyel9CSIn/crPzwOCRofNKhqmfs4aEQ="
+    version = "v0.25.0"
+    hash = "sha256-IjFfXLYNj27WLF7vpkZ6mfFXBnp+7QER3OQ0RgjxN54="
   [mod."golang.org/x/sys"]
     version = "v0.20.0"
     hash = "sha256-mowlaoG2k4n1c1rApWef5EMiXd3I77CsUi8jPh6pTYA="
   [mod."golang.org/x/text"]
     version = "v0.15.0"
     hash = "sha256-pBnj0AEkfkvZf+3bN7h6epCD2kurw59clDP7yWvxKlk="
+  [mod."golang.org/x/tools"]
+    version = "v0.21.0"
+    hash = "sha256-TU0gAxUX410AYc/nMxxZiaqXeORih1cXbKh3sxKufVg="
   [mod."gopkg.in/yaml.v3"]
     version = "v3.0.1"
     hash = "sha256-FqL9TKYJ0XkNwJFnq9j0VvJ5ZUU1RvH/52h/f5bkYAU="
