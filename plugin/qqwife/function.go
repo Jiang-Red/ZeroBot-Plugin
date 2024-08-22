@@ -93,7 +93,7 @@ func init() {
 			ctx.SendChain(message.Text("设置成功"))
 		})
 	// 单身技能
-	engine.OnRegex(`^(娶|嫁)\[CQ:at,qq=(\d+)\]`, zero.OnlyGroup, getdb, checkSingleDog).SetBlock(true).Limit(ctxext.LimitByUser).
+	engine.OnRegex(`^(娶|嫁)\[CQ:at,(?:\S*,)?qq=(\d+)(?:,\S*)?\]`, zero.OnlyGroup, getdb, checkSingleDog).SetBlock(true).Limit(ctxext.LimitByUser).
 		Handle(func(ctx *zero.Ctx) {
 			gid := ctx.Event.GroupID
 			uid := ctx.Event.UserID
@@ -153,7 +153,7 @@ func init() {
 				message.Text(sendtext[0][rand.Intn(len(sendtext[0]))]),
 				message.At(uid),
 				message.Text(choicetext),
-				message.Image("http://q4.qlogo.cn/g?b=qq&nk="+strconv.FormatInt(fiancee, 10)+"&s=640").Add("cache", 0),
+				message.Image("https://q4.qlogo.cn/g?b=qq&nk="+strconv.FormatInt(fiancee, 10)+"&s=640").Add("cache", 0),
 				message.Text(
 					"\n",
 					"[", ctx.CardOrNickName(fiancee), "]",
@@ -239,7 +239,7 @@ func init() {
 				message.Text(sendtext[2][rand.Intn(len(sendtext[2]))]),
 				message.At(uid),
 				message.Text("今天你的群"+choicetext+"是"),
-				message.Image("http://q4.qlogo.cn/g?b=qq&nk="+strconv.FormatInt(fiancee, 10)+"&s=640").Add("cache", 0),
+				message.Image("https://q4.qlogo.cn/g?b=qq&nk="+strconv.FormatInt(fiancee, 10)+"&s=640").Add("cache", 0),
 				message.Text(
 					"\n",
 					"[", ctx.CardOrNickName(fiancee), "]",
@@ -303,7 +303,7 @@ func init() {
 				message.Text("恭喜你成功撮合了一对CP\n\n"),
 				message.At(gayOne),
 				message.Text("今天你的群老婆是"),
-				message.Image("http://q4.qlogo.cn/g?b=qq&nk="+strconv.FormatInt(gayZero, 10)+"&s=640").Add("cache", 0),
+				message.Image("https://q4.qlogo.cn/g?b=qq&nk="+strconv.FormatInt(gayZero, 10)+"&s=640").Add("cache", 0),
 				message.Text(
 					"\n",
 					"[", ctx.CardOrNickName(gayZero), "]",

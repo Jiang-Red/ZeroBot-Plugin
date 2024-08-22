@@ -14,6 +14,7 @@ import (
 	"github.com/FloatTech/AnimeAPI/bilibili"
 	"github.com/FloatTech/AnimeAPI/wallet"
 	"github.com/FloatTech/floatbox/file"
+	"github.com/FloatTech/floatbox/process"
 	"github.com/FloatTech/floatbox/web"
 	"github.com/FloatTech/imgfactory"
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -324,7 +325,8 @@ func getrank(count int) int {
 }
 
 func initPic(picFile string, uid int64) (avatar []byte, err error) {
-	avatar, err = web.GetData("http://q4.qlogo.cn/g?b=qq&nk=" + strconv.FormatInt(uid, 10) + "&s=640")
+	defer process.SleepAbout1sTo2s()
+	avatar, err = web.GetData("https://q4.qlogo.cn/g?b=qq&nk=" + strconv.FormatInt(uid, 10) + "&s=640")
 	if err != nil {
 		return
 	}

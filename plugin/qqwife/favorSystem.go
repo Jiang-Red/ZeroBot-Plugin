@@ -47,7 +47,7 @@ func init() {
 			)
 		})
 	// 礼物系统
-	engine.OnRegex(`^买礼物给\s?(\[CQ:at,qq=(\d+)\]|(\d+))`, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
+	engine.OnRegex(`^买礼物给\[CQ:at,(?:\S*,)?qq=(\d+)(?:,\S*)?\]|(\d+))`, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
 		Handle(func(ctx *zero.Ctx) {
 			gid := ctx.Event.GroupID
 			uid := ctx.Event.UserID
@@ -117,9 +117,9 @@ func init() {
 			}
 			// 输出结果
 			if mood == 0 {
-				ctx.SendChain(message.Text("你花了", moneyToFavor, "ATRI币买了一件女装送给了ta,ta很不喜欢,你们的好感度降低至", lastfavor))
+				ctx.SendChain(message.Text("你花了", moneyToFavor, wallet.GetWalletName(), "买了一件女装送给了ta,ta很不喜欢,你们的好感度降低至", lastfavor))
 			} else {
-				ctx.SendChain(message.Text("你花了", moneyToFavor, "ATRI币买了一件女装送给了ta,ta很喜欢,你们的好感度升至", lastfavor))
+				ctx.SendChain(message.Text("你花了", moneyToFavor, wallet.GetWalletName(), "买了一件女装送给了ta,ta很喜欢,你们的好感度升至", lastfavor))
 			}
 		})
 	engine.OnFullMatch("好感度列表", zero.OnlyGroup, getdb).SetBlock(true).Limit(ctxext.LimitByUser).

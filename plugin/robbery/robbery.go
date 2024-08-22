@@ -37,7 +37,7 @@ func init() {
 	}
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
-		Brief:            "打劫别人的ATRI币",
+		Brief:            "打劫别人的钱包",
 		Help: "- 打劫[对方Q号|@对方QQ]\n" +
 			"1. 受害者钱包少于1000不能被打劫\n" +
 			"2. 打劫成功率 40%\n" +
@@ -74,7 +74,7 @@ func init() {
 	})
 
 	// 打劫功能
-	engine.OnRegex(`^打劫\s?(\[CQ:at,qq=(\d+)\]|(\d+))`, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
+	engine.OnRegex(`^打劫\[CQ:at,(?:\S*,)?qq=(\d+)(?:,\S*)?\]|(\d+))`, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
 		Handle(func(ctx *zero.Ctx) {
 			uid := ctx.Event.UserID
 			fiancee := ctx.State["regex_matched"].([]string)
@@ -90,8 +90,13 @@ func init() {
 				ctx.SendChain(message.Text("[ERROR]:", err))
 				return
 			}
-			if !ok {
-				ctx.SendChain(message.Text("你已经打劫过了/对方已经被打劫过了"))
+
+			if ok == 1 {
+				ctx.SendChain(message.Text("对方今天已经被打劫了，给人家留点后路吧"))
+				return
+			}
+			if ok >= 2 {
+				ctx.SendChain(message.Text("你今天已经成功打劫过了，贪心没有好果汁吃！"))
 				return
 			}
 
@@ -116,16 +121,16 @@ func init() {
 				}
 				return
 			}
-			userIncrMonry := math.Min(rand.Intn(victimWallet/20)+500, 10000)
-			victimDecrMonry := userIncrMonry / (rand.Intn(4) + 1)
+			userIncrMoney := math.Min(rand.Intn(victimWallet/20)+500, 10000)
+			victimDecrMoney := userIncrMoney / (rand.Intn(4) + 1)
 
 			// 记录结果
-			err = wallet.InsertWalletOf(victimID, -victimDecrMonry)
+			err = wallet.InsertWalletOf(victimID, -victimDecrMoney)
 			if err != nil {
 				ctx.SendChain(message.Text("[ERROR]:钱包坏掉力:\n", err))
 				return
 			}
-			err = wallet.InsertWalletOf(uid, +userIncrMonry)
+			err = wallet.InsertWalletOf(uid, +userIncrMoney)
 			if err != nil {
 				ctx.SendChain(message.Text("[ERROR]:打劫失败，脏款掉入虚无\n", err))
 				return
@@ -137,33 +142,46 @@ func init() {
 				ctx.SendChain(message.At(uid), message.Text("[ERROR]:犯罪记录写入失败\n", err))
 			}
 
-			ctx.SendChain(message.At(uid), message.Text("打劫成功，钱包增加：", userIncrMonry, "ATRI币"))
-			ctx.SendChain(message.At(victimID), message.Text("保险公司对您进行了赔付，您实际损失：", victimDecrMonry, "ATRI币"))
+			ctx.SendChain(message.At(uid), message.Text("打劫成功，钱包增加：", userIncrMoney, wallet.GetWalletName()))
+			ctx.SendChain(message.At(victimID), message.Text("保险公司对您进行了赔付，您实际损失：", victimDecrMoney, wallet.GetWalletName()))
 		})
 }
 
-func (sql *robberyRepo) getRecord(victimID, uid int64) (ok bool, err error) {
+// ok==0 可以打劫；ok==1 程序错误 or 受害者进入CD；ok==2 用户进入CD; ok==3 用户和受害者都进入CD；
+func (sql *robberyRepo) getRecord(victimID, uid int64) (ok int, err error) {
 	sql.Lock()
 	defer sql.Unlock()
 	// 创建群表格
 	err = sql.db.Create("criminal_record", &robberyRecord{})
 	if err != nil {
-		return false, err
+		return 1, err
 	}
+	// 拼接查询SQL
 	limitID := "where victim_id is " + strconv.FormatInt(victimID, 10) +
 		" or user_id is " + strconv.FormatInt(uid, 10)
 	if !sql.db.CanFind("criminal_record", limitID) {
 		// 没有记录即不用比较
-		return true, nil
+		return 0, nil
 	}
-	cdinfo := robberyRecord{}
-	_ = sql.db.Find("criminal_record", &cdinfo, limitID)
-	if time.Now().Format("2006/01/02") != cdinfo.Time {
-		// // 如果跨天了就删除
-		err = sql.db.Del("criminal_record", limitID)
-		return true, err
-	}
-	return false, nil
+	cdInfo := robberyRecord{}
+
+	err = sql.db.FindFor("criminal_record", &cdInfo, limitID, func() error {
+		if time.Now().Format("2006/01/02") != cdInfo.Time {
+			// // 如果跨天了就删除
+			err = sql.db.Del("criminal_record", limitID)
+			return nil
+		}
+		// 俩个if是为了保证，重复打劫同一个人，ok == 3
+		if cdInfo.UserID == uid {
+			ok += 2
+		}
+		if cdInfo.VictimID == victimID {
+			// lint 不允许使用 ok += 1
+			ok++
+		}
+		return nil
+	})
+	return ok, err
 }
 
 func (sql *robberyRepo) insertRecord(vid int64, uid int64) error {
