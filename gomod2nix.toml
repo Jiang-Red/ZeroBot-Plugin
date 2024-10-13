@@ -17,8 +17,8 @@ schema = 3
     version = "v0.2.2-0.20230413152719-e101cc3606ef"
     hash = "sha256-2okFyPQSYIxrc8hxICsbjEM9xq25a3I2A4wmDIYFCg8="
   [mod."github.com/FloatTech/rendercard"]
-    version = "v0.1.2"
-    hash = "sha256-9KeVK12Dz3ygH+4cOzl5ymOC9pvN8Mi4oQFeY8suheE="
+    version = "v0.2.0"
+    hash = "sha256-fgntEYGh2mEl618hM13kb0GGeQEXdP+lochYX8F2OXs="
   [mod."github.com/FloatTech/sqlite"]
     version = "v1.6.3"
     hash = "sha256-zWPByEMi89ms67ubPg0fAPIRxfpBC2IRKc0iNVLqkPU="
@@ -29,8 +29,8 @@ schema = 3
     version = "v1.6.2-0.20240904160347-1317e11a15bb"
     hash = "sha256-x0ZR2bnkboEIjjRFMtMAN0T34BP9BPs7r3AwT3BCyzo="
   [mod."github.com/FloatTech/zbputils"]
-    version = "v1.7.2-0.20240822065525-5ea6811ed91c"
-    hash = "sha256-ouAExps1iPCcD1AmOxyhRXMBGHBDXvUGkplcnQCf3Bg="
+    version = "v1.7.2-0.20240911161040-1d89a7b10ff8"
+    hash = "sha256-3j7LE5Uqx5kPmi6c+WJEBFtLK0JGU4UGX7RpVuAjmf8="
   [mod."github.com/RomiChan/syncx"]
     version = "v0.0.0-20240418144900-b7402ffdebc7"
     hash = "sha256-L1j1vgiwqXpF9pjMoRRlrQUHzoULisw/01plaEAwxs4="
