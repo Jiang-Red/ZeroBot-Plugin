@@ -24,7 +24,7 @@ var (
 	nospace  = regexp.MustCompile(`([^\s])`)
 	shoot    = regexp.MustCompile(`^盲狙(.*)`)
 
-	engine = control.Register("guessname", &ctrl.Options[*zero.Ctx]{
+	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: true,
 		Brief:            "音游开字符",
 		Help: "开始游戏: \n" +

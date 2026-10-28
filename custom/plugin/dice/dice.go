@@ -15,7 +15,7 @@ import (
 var (
 	db     sql.Sqlite
 	initDB zero.Rule
-	engine = control.Register("dice", &ctrl.Options[*zero.Ctx]{
+	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: true,
 		Brief:            "骰子?",
 		Help:             "试图移植的dice\n-.jrrp\n-.ra\n-.rd",

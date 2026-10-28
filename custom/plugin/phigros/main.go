@@ -22,7 +22,7 @@ var (
 	sdb    sql.Sqlite
 	mu     sync.RWMutex
 	initDB zero.Rule
-	en     = control.Register("phigros", &ctrl.Options[*zero.Ctx]{
+	en     = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Brief:            "Phigros查分",
 		Help: "/phi init 初始化存档\n" +

@@ -10,7 +10,7 @@ import (
 
 // 插件主体
 func init() {
-	engine := control.Register("delreply", &ctrl.Options[*zero.Ctx]{
+	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Brief:            "撤回消息",
 		Help:             "回复消息\"撤回\"以撤回消息",

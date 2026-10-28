@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	engine := control.Register("managerplugin", &ctrl.Options[*zero.Ctx]{
+	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: true,
 		Brief:            "自定义的群管插件",
 		Help: " - 开启全员禁言 群号\n" +

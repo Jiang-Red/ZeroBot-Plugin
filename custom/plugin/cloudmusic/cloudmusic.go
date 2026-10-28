@@ -28,7 +28,7 @@ const (
 )
 
 func init() { // 插件主体
-	control.Register("cloudmusic", &ctrl.Options[*zero.Ctx]{
+	control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Brief:            "网易云热评论",
 		Help:             "- 来句网易云热评",

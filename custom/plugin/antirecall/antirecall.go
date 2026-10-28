@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	engine := control.Register("antirecall", &ctrl.Options[*zero.Ctx]{
+	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: true,
 		Brief:            "反闪照、反撤回",
 		Help:             "反闪照、反撤回",

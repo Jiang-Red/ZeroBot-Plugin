@@ -30,7 +30,7 @@ var (
 	db     sql.Sqlite
 	sm     syncx.Map[int64, *result]
 	initDB zero.Rule
-	en     = control.Register("antirepeat", &ctrl.Options[*zero.Ctx]{
+	en     = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: true,
 		Brief:            "限制复读",
 		Help:             "- 设置复读禁言次数 <次数>\n- 设置复读禁言时间 <时间> 分钟\nTips: 默认复读3次禁言, 时长60分钟\n ",

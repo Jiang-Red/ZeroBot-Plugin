@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	engine := control.Register("custom", &ctrl.Options[*zero.Ctx]{
+	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Brief:            "自订工具",
 		Help: " - /kill\n" +
