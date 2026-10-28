@@ -39,7 +39,7 @@ type searchResult struct {
 
 func init() {
 	en := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "游戏王百鸽API", // 本插件基于游戏王百鸽API"https://www.ygo-sem.cn/"
 		Help: "- /ydp [xxx]\n" +
 			"- /yds [xxx]\n" +

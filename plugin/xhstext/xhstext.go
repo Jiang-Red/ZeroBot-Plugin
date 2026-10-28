@@ -24,7 +24,7 @@ var db sql.Sqlite
 
 func init() {
 	en := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "小红书文案",
 		Help:             "- 捧场\n- 有梗",
 		PublicDataFolder: "Xhstext",

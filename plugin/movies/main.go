@@ -34,7 +34,7 @@ var (
 	todayPic = make([][]byte, 2)
 	lasttime time.Time
 	en       = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "电影查询",
 		Help: "- 今日电影\n" +
 			"- 预售电影",

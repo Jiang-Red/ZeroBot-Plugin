@@ -61,7 +61,7 @@ var words = make(dictionary)
 
 func init() {
 	en := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: true,
+		DisableOnDefault: false,
 		Brief:            "猜单词",
 		Help: "- 个人猜单词\n" +
 			"- 团队猜单词\n" +

@@ -26,7 +26,7 @@ const (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault:  false,
+		DisableOnDefault:  true,
 		Brief:             "聊天时长统计",
 		Help:              "- 查询水群@xxx\n- 查看水群排名",
 		PrivateDataFolder: "chatcount",

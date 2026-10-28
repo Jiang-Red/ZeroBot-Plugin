@@ -12,7 +12,7 @@ import (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "nsfw图片识别",
 		Help:             "- nsfw打分[图片]",
 	}).ApplySingle(ctxext.DefaultSingle)

@@ -33,7 +33,7 @@ type robberyRecord struct {
 func init() {
 	var police robberyRepo
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "打劫别人的钱包",
 		Help: "- 打劫[对方Q号|@对方QQ]\n" +
 			"1. 受害者钱包少于1000不能被打劫\n" +

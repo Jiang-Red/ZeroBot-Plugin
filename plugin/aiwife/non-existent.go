@@ -18,7 +18,7 @@ const (
 
 func init() { // 插件主体
 	control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "ai随机生成老婆",
 		Help:             "- waifu | 随机waifu",
 	}).ApplySingle(ctxext.DefaultSingle).OnFullMatchGroup([]string{"waifu", "随机waifu"}).SetBlock(true).

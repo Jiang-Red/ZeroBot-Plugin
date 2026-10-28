@@ -49,7 +49,7 @@ var (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Extra:            control.ExtraFromString("novel"),
 		Brief:            "铅笔小说网搜索",
 		Help: "- 小说[xxx]\n" +

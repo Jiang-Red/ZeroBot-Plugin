@@ -25,7 +25,7 @@ const (
 
 func init() { // 插件主体
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault:  false,
+		DisableOnDefault:  true,
 		Brief:             "Real-CUGAN清晰术",
 		Help:              "- 清晰术(双重吟唱|三重吟唱|四重吟唱)(强力术式|中等术式|弱术式|不变式|原式)[图片]",
 		PrivateDataFolder: "realcugan",

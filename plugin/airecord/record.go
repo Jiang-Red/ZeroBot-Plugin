@@ -18,7 +18,7 @@ import (
 
 func init() {
 	en := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Extra:            control.ExtraFromString("airecord"),
 		Brief:            "群应用：AI声聊",
 		Help: "- 设置AI语音群号1048452984(tips：机器人任意所在群聊即可)\n" +

@@ -51,7 +51,7 @@ const (
 
 var (
 	engine = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "遇见API",
 		Help: "- 小姐姐视频\n- 小姐姐视频2\n- 黑丝视频\n- 白丝视频\n" +
 			"- 欲梦视频\n- 甜妹视频\n- 双倍快乐\n- 纯情女高\n" +

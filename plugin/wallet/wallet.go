@@ -24,7 +24,7 @@ import (
 
 func init() {
 	en := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "钱包",
 		Help: "- 查看钱包排名\n" +
 			"- 设置硬币名称XX\n" +

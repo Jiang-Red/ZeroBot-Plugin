@@ -37,7 +37,7 @@ const (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "QQ空间表白墙",
 		Help: "- 登录QQ空间 (Cookie过期很快, 要经常登录)\n" +
 			"- 发说说[xxx]\n" +

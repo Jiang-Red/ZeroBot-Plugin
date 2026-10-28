@@ -15,7 +15,7 @@ var (
 
 func init() { // 插件主体
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "以图搜番",
 		Help:             "- 以图搜番 | 搜番 | 搜索番剧[图片]",
 	})

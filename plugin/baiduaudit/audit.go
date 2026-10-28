@@ -35,7 +35,7 @@ var (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "百度内容审核",
 		Help: "##该功能来自百度内容审核, 需购买相关服务, 并创建app##\n" +
 			"- 获取BDAKey\n" +

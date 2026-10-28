@@ -12,7 +12,7 @@ import (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "词典匹配回复, 仅@触发",
 		PublicDataFolder: "Chat",
 	})

@@ -22,7 +22,7 @@ import (
 
 var (
 	en = control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "牛牛大作战",
 		Help: "- 打胶\n" +
 			"- 使用[道具名称]打胶\n" +

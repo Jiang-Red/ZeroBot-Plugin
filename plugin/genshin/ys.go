@@ -36,7 +36,7 @@ var (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "原神模拟抽卡",
 		Help:             "- 原神十连\n- 切换原神卡池",
 		PublicDataFolder: "Genshin",

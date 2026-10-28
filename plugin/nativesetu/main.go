@@ -26,7 +26,7 @@ var (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "本地涩图",
 		Help: "- 本地[xxx]\n" +
 			"- 刷新本地[xxx]\n" +

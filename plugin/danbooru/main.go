@@ -18,7 +18,7 @@ import (
 
 func init() { // 插件主体
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault:  false,
+		DisableOnDefault:  true,
 		Brief:             "二次元图片标签识别",
 		Help:              "- 鉴赏图片[图片]",
 		PrivateDataFolder: "danbooru",

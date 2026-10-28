@@ -28,7 +28,7 @@ var platformMap = map[string]func(string) (message.Segment, error){
 
 func init() {
 	control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "点歌",
 		Help: "- 点歌[xxx] (默认酷我)\n" +
 			"- 网易点歌[xxx]\n" +

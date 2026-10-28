@@ -28,7 +28,7 @@ var (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault:  false,
+		DisableOnDefault:  true,
 		Brief:             "フリーテキスト音声合成",
 		Help:              "- 使[伊織弓鶴|紲星あかり|結月ゆかり|京町セイカ|東北きりたん|東北イタコ|ついなちゃん標準語|ついなちゃん関西弁|音街ウナ|琴葉茜|吉田くん|民安ともえ|桜乃そら|月読アイ|琴葉葵|東北ずん子|月読ショウタ|水奈瀬コウ]说(日语)",
 		PrivateDataFolder: "ahsai",

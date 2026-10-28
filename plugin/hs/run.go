@@ -42,7 +42,7 @@ const (
 
 func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "炉石搜卡",
 		Help: "- 搜卡[xxxx]\n" +
 			"- [卡组代码xxx]\n" +

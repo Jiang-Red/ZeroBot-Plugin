@@ -19,7 +19,7 @@ import (
 
 func init() { // 插件主体
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "一言",
 		Help: "- 一言[xxx]\n" +
 			"- 系列一言",

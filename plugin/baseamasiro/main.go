@@ -13,7 +13,7 @@ import (
 
 func init() {
 	en := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
-		DisableOnDefault: false,
+		DisableOnDefault: true,
 		Brief:            "天城文加解密",
 		Help:             "- 天城文加密xxx\n- 天城文解密xxx\n- 天城文用yyy加密xxx\n- 天城文用yyy解密xxx",
 	})
