@@ -2,14 +2,20 @@
 package wordcount
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/fumiama/jieba"
+	"github.com/golang/freetype"
+	"github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
+	"github.com/wcharczuk/go-chart/v2"
 
 	"github.com/FloatTech/floatbox/binary"
 	fcext "github.com/FloatTech/floatbox/ctxext"
@@ -18,10 +24,7 @@ import (
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
 	"github.com/FloatTech/zbputils/img/text"
-	"github.com/golang/freetype"
-	"github.com/sirupsen/logrus"
-	"github.com/tidwall/gjson"
-	"github.com/wcharczuk/go-chart/v2"
+
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
@@ -35,13 +38,21 @@ func init() {
 	engine := control.AutoRegister(&ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Brief:            "聊天热词",
-		Help:             "- 热词 [群号] [消息数目]|热词 123456 1000",
+		Help:             "- 热词 [消息数目]|热词 1000",
 		PublicDataFolder: "WordCount",
 	})
 	cachePath := engine.DataFolder() + "cache/"
+	dat, err := file.GetLazyData("data/Chat/dict.txt", control.Md5File, true)
+	if err != nil {
+		panic(err)
+	}
+	seg, err := jieba.LoadDictionary(bytes.NewReader(dat))
+	if err != nil {
+		panic(err)
+	}
 	_ = os.RemoveAll(cachePath)
 	_ = os.MkdirAll(cachePath, 0755)
-	engine.OnRegex(`^热词\s?(\d*)\s?(\d*)$`, zero.OnlyGroup, fcext.DoOnceOnSuccess(func(ctx *zero.Ctx) bool {
+	engine.OnRegex(`^热词\s?(\d*)$`, zero.OnlyGroup, fcext.DoOnceOnSuccess(func(ctx *zero.Ctx) bool {
 		_, err := engine.GetLazyData("stopwords.txt", false)
 		if err != nil {
 			ctx.SendChain(message.Text("ERROR: ", err))
@@ -75,17 +86,14 @@ func init() {
 			}
 
 			ctx.SendChain(message.Text("少女祈祷中..."))
-			gid, _ := strconv.ParseInt(ctx.State["regex_matched"].([]string)[1], 10, 64)
-			p, _ := strconv.ParseInt(ctx.State["regex_matched"].([]string)[2], 10, 64)
+			p, _ := strconv.ParseInt(ctx.State["regex_matched"].([]string)[1], 10, 64)
 			if p > 10000 {
 				p = 10000
 			}
 			if p == 0 {
 				p = 1000
 			}
-			if gid == 0 {
-				gid = ctx.Event.GroupID
-			}
+			gid := ctx.Event.GroupID
 			group := ctx.GetGroupInfo(gid, false)
 			if group.MemberCount == 0 {
 				ctx.SendChain(message.Text(zero.BotConfig.NickName[0], "未加入", group.Name, "(", gid, "),无法获得热词呢"))
@@ -98,42 +106,21 @@ func init() {
 				return
 			}
 			messageMap := make(map[string]int, 256)
-			msghists := make(chan *gjson.Result, 256)
-			go func() {
-				h := ctx.GetLatestGroupMessageHistory(gid)
-				messageSeq := h.Get("messages.0.message_seq").Int()
-				msghists <- &h
-				for i := 1; i < int(p/20) && messageSeq != 0; i++ {
-					h := ctx.GetGroupMessageHistory(gid, messageSeq)
-					msghists <- &h
-					messageSeq = h.Get("messages.0.message_seq").Int()
-				}
-				close(msghists)
-			}()
-			var wg sync.WaitGroup
-			var mapmu sync.Mutex
-			for h := range msghists {
-				wg.Add(1)
-				go func(h *gjson.Result) {
-					for _, v := range h.Get("messages.#.message").Array() {
-						tex := strings.TrimSpace(message.ParseMessageFromString(v.Str).ExtractPlainText())
-						if tex == "" {
-							continue
-						}
-						for _, t := range ctx.GetWordSlices(tex).Get("slices").Array() {
-							tex := strings.TrimSpace(t.Str)
-							i := sort.SearchStrings(stopwords, tex)
-							if re.MatchString(tex) && (i >= len(stopwords) || stopwords[i] != tex) {
-								mapmu.Lock()
-								messageMap[tex]++
-								mapmu.Unlock()
-							}
+			h := ctx.GetGroupMessageHistory(gid, 0, p, false)
+			h.Get("messages").ForEach(func(_, msgObj gjson.Result) bool {
+				tex := strings.TrimSpace(message.ParseMessageFromString(msgObj.Get("raw_message").Str).ExtractPlainText())
+				if tex != "" {
+					words := seg.Cut(tex, true)
+					for _, word := range words {
+						word = strings.TrimSpace(word)
+						i := sort.SearchStrings(stopwords, word)
+						if re.MatchString(word) && (i >= len(stopwords) || stopwords[i] != word) {
+							messageMap[word]++
 						}
 					}
-					wg.Done()
-				}(h)
-			}
-			wg.Wait()
+				}
+				return true
+			})
 
 			wc := rankByWordCount(messageMap)
 			if len(wc) > 20 {

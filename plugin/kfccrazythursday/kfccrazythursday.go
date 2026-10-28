@@ -2,7 +2,6 @@
 package kfccrazythursday
 
 import (
-	"github.com/FloatTech/floatbox/binary"
 	"github.com/FloatTech/floatbox/web"
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
@@ -11,7 +10,7 @@ import (
 )
 
 const (
-	crazyURL = "http://api.jixs.cc/api/wenan-fkxqs/index.php"
+	crazyURL = "https://v50.deno.dev/"
 )
 
 func init() {
@@ -26,6 +25,8 @@ func init() {
 			ctx.SendChain(message.Text("ERROR: ", err))
 			return
 		}
-		ctx.SendChain(message.Text(binary.BytesToString(data)))
+
+		// 根据来源API修改返回方式到直接输出文本
+		ctx.SendChain(message.Text(string(data)))
 	})
 }

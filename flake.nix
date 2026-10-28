@@ -12,42 +12,83 @@
     nixpkgs,
     flake-utils,
     gomod2nix,
-  }: let
-    allSystems = flake-utils.lib.allSystems;
-  in (
-    flake-utils.lib.eachSystem allSystems
-    (system: let
+  }: (flake-utils.lib.eachDefaultSystem (
+    system: let
       pkgs = nixpkgs.legacyPackages.${system};
 
-      # The current default sdk for macOS fails to compile go projects, so we use a newer one for now.
-      # This has no effect on other platforms.
-      callPackage = pkgs.darwin.apple_sdk_11_0.callPackage or pkgs.callPackage;
-    in {
-      # doCheck will fail at write files
-      packages = rec {
-
-        ZeroBot-Plugin =
-          (callPackage ./. {
-            inherit (gomod2nix.legacyPackages.${system}) buildGoApplication;
-          })
-          .overrideAttrs (_: {doCheck = false;});
-
-        default = ZeroBot-Plugin;
-
-        docker_builder = pkgs.dockerTools.buildLayeredImage {
-          name = "ZeroBot-Plugin";
-          tag = "latest";
-          contents = [
-            self.packages.${system}.ZeroBot-Plugin
-            pkgs.cacert
-          ];
-        };
-
+      callPackage = pkgs.callPackage;
+      # Simple test check added to nix flake check
+      go-test = pkgs.stdenvNoCC.mkDerivation {
+        name = "go-test";
+        dontBuild = true;
+        src = ./.;
+        doCheck = true;
+        nativeBuildInputs = with pkgs; [
+          go
+          writableTmpDirAsHomeHook
+        ];
+        checkPhase = ''
+          go test -v ./...
+        '';
+        installPhase = ''
+          mkdir "$out"
+        '';
       };
+      # Simple lint check added to nix flake check
+      go-lint = pkgs.stdenvNoCC.mkDerivation {
+        name = "go-lint";
+        dontBuild = true;
+        src = ./.;
+        doCheck = true;
+        nativeBuildInputs = with pkgs; [
+          golangci-lint
+          go
+          writableTmpDirAsHomeHook
+        ];
+        checkPhase = ''
+          golangci-lint run
+        '';
+        installPhase = ''
+          mkdir "$out"
+        '';
+      };
+      # doCheck will fail at download files
+      ZeroBot-Plugin = (callPackage ./. {
+        inherit (gomod2nix.legacyPackages.${system}) buildGoApplication;
+      }).overrideAttrs (_: {doCheck = false;});
+      # Build container layered image, useful overtime to save storage on duplicated layers
+      containerImage = pkgs.dockerTools.buildLayeredImage {
+        name = "ZeroBot-Plugin";
+        tag = "latest";
+        created = "now";
+        contents = [
+          pkgs.cacert
+          pkgs.openssl
+        ];
+        config = {
+          Cmd = ["${ZeroBot-Plugin}/bin/ZeroBot-Plugin"];
+        };
+      };
+    in {
+      inherit containerImage;
+      checks = {
+        inherit go-test go-lint;
+      };
+      packages.default = ZeroBot-Plugin;
       devShells.default = callPackage ./shell.nix {
         inherit (gomod2nix.legacyPackages.${system}) mkGoEnv gomod2nix;
       };
+      # Custom application to build and load container image into the docker daemon
+      # For now docker is a requirement
+      apps.build-and-load = {
+        type = "app";
+        program = "${pkgs.writeShellScriptBin "build-and-load" ''
+          nix build .#containerImage.${system}
+          docker load < result
+          echo "Container image loaded"
+        ''}/bin/build-and-load";
+      };
       formatter = pkgs.alejandra;
-    })
-  );
+    }
+  ));
 }

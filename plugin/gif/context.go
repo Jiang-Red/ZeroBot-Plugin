@@ -7,7 +7,7 @@ import (
 
 	"github.com/FloatTech/floatbox/file"
 	"github.com/FloatTech/floatbox/web"
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +20,7 @@ func dlchan(name string, s *string, wg *sync.WaitGroup, exit func(error)) {
 	defer wg.Done()
 	target := datapath + `materials/` + name
 	if file.IsNotExist(target) {
-		data, err := web.RequestDataWith(web.NewTLS12Client(), `https://gitcode.net/m0_60838134/imagematerials/-/raw/main/`+name, "GET", "gitcode.net", web.RandUA(), nil)
+		data, err := web.GetData(`https://gitea.seku.su/fumiama/ImageMaterials/raw/branch/master/` + name)
 		if err != nil {
 			_ = os.Remove(target)
 			exit(err)
@@ -48,7 +48,7 @@ func dlchan(name string, s *string, wg *sync.WaitGroup, exit func(error)) {
 func dlblock(name string) (string, error) {
 	target := datapath + `materials/` + name
 	if file.IsNotExist(target) {
-		data, err := web.RequestDataWith(web.NewTLS12Client(), `https://gitcode.net/m0_60838134/imagematerials/-/raw/main/`+name, "GET", "gitcode.net", web.RandUA(), nil)
+		data, err := web.GetData(`https://gitea.seku.su/fumiama/ImageMaterials/raw/branch/master/` + name)
 		if err != nil {
 			_ = os.Remove(target)
 			return "", err
@@ -97,10 +97,10 @@ func newContext(user int64, atUser int64) *context {
 	return c
 }
 
-func loadFirstFrames(paths []string, size int) (imgs []*imgfactory.Factory, err error) {
-	imgs = make([]*imgfactory.Factory, size)
+func loadFirstFrames(paths []string, size int) (imgs []*factory.Factory, err error) {
+	imgs = make([]*factory.Factory, size)
 	for i := range imgs {
-		imgs[i], err = imgfactory.LoadFirstFrame(paths[i], 0, 0)
+		imgs[i], err = factory.LoadFirstFrame(paths[i], 0, 0)
 		if err != nil {
 			return nil, err
 		}

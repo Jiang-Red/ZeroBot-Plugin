@@ -2,7 +2,6 @@
 package dish
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -25,7 +24,7 @@ type dish struct {
 }
 
 var (
-	db          = &sql.Sqlite{}
+	db          sql.Sqlite
 	initialized = false
 )
 
@@ -37,7 +36,7 @@ func init() {
 		PublicDataFolder: "Dish",
 	})
 
-	db.DBPath = en.DataFolder() + "dishes.db"
+	db = sql.New(en.DataFolder() + "dishes.db")
 
 	if _, err := en.GetLazyData("dishes.db", true); err != nil {
 		logrus.Warnln("[dish]获取菜谱数据库文件失败")
@@ -62,7 +61,7 @@ func init() {
 			return
 		}
 
-		name := ctx.NickName()
+		name := ctx.CardOrNickName(ctx.Event.UserID)
 		dishName := ctx.State["args"].(string)
 
 		if dishName == "" {
@@ -77,17 +76,15 @@ func init() {
 		}
 
 		var d dish
-		if err := db.Find("dish", &d, fmt.Sprintf("WHERE name like '%%%s%%'", dishName)); err != nil {
+		if err := db.Find("dish", &d, "WHERE name LIKE ?", "%"+dishName+"%"); err != nil {
 			ctx.SendChain(message.Text("客官，本店没有" + dishName))
 			return
 		}
 
-		ctx.SendChain(message.Text(fmt.Sprintf(
-			"已为客官%s找到%s的做法辣！\n"+
-				"原材料：%s\n"+
-				"步骤：\n"+
-				"%s",
-			name, d.Name, d.Materials, d.Steps),
+		ctx.SendChain(message.Text(
+			"已为客官", name, "找到", d.Name, "的做法辣！\n",
+			"原材料：", d.Materials, "\n",
+			"步骤：", d.Steps,
 		))
 	})
 
@@ -105,12 +102,10 @@ func init() {
 			return
 		}
 
-		ctx.SendChain(message.Text(fmt.Sprintf(
-			"已为客官%s送上%s的做法：\n"+
-				"原材料：%s\n"+
-				"步骤：\n"+
-				"%s",
-			name, d.Name, d.Materials, d.Steps),
+		ctx.SendChain(message.Text(
+			"已为客官", name, "送上", d.Name, "的做法：\n",
+			"原材料：", d.Materials, "\n",
+			"步骤：", d.Steps,
 		))
 	})
 }

@@ -16,7 +16,7 @@ import (
 	fcext "github.com/FloatTech/floatbox/ctxext"
 	"github.com/FloatTech/floatbox/file"
 	"github.com/FloatTech/floatbox/web"
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
 	ctrl "github.com/FloatTech/zbpctrl"
 	control "github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
@@ -36,7 +36,7 @@ var (
 	lotsList = func() map[string]info {
 		lotsList, err := getList()
 		if err != nil {
-			logrus.Infoln("[drawlots]加载失败:", err)
+			logrus.Infoln("[drawlots]加载失败:", err, "(如果从未使用过该插件, 这是正常现象)")
 		} else {
 			logrus.Infoln("[drawlots]加载", len(lotsList), "个抽签")
 		}
@@ -97,7 +97,7 @@ func init() {
 			return
 		}
 		// 生成图片
-		data, err := imgfactory.ToBytes(lotsImg)
+		data, err := factory.ToBytes(lotsImg)
 		if err != nil {
 			ctx.SendChain(message.Text("ERROR: ", err))
 			return

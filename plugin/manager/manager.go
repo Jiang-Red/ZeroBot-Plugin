@@ -50,6 +50,7 @@ const (
 		"- 列出所有提醒\n" +
 		"- 翻牌\n" +
 		"- 赞我\n" +
+		"- 群签到\n" +
 		"- 对信息回复: 回应表情 [表情]\n" +
 		"- 设置欢迎语XXX 可选添加 [{at}] [{nickname}] [{avatar}] [{uid}] [{gid}] [{groupname}]\n" +
 		"- 测试欢迎语\n" +
@@ -63,7 +64,7 @@ const (
 )
 
 var (
-	db    = &sql.Sqlite{}
+	db    sql.Sqlite
 	clock timer.Clock
 )
 
@@ -76,12 +77,12 @@ func init() { // 插件主体
 	})
 
 	go func() {
-		db.DBPath = engine.DataFolder() + "config.db"
+		db = sql.New(engine.DataFolder() + "config.db")
 		err := db.Open(time.Hour)
 		if err != nil {
 			panic(err)
 		}
-		clock = timer.NewClock(db)
+		clock = timer.NewClock(&db)
 		err = db.Create("welcome", &welcome{})
 		if err != nil {
 			panic(err)
@@ -156,10 +157,11 @@ func init() { // 插件主体
 			ctx.SendChain(message.Text("全员自闭结束~"))
 		})
 	// 禁言
-	engine.OnRegex(`^禁言.*?(\d+).*?\s(\d+)(.*)`, zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
+	engine.OnMessage(zero.NewPattern(nil).Text("^禁言").At().Text("(\\d+)\\s*(.*)").AsRule(), zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
-			duration := math.Str2Int64(ctx.State["regex_matched"].([]string)[2])
-			switch ctx.State["regex_matched"].([]string)[3] {
+			parsed := ctx.State[zero.KeyPattern].([]zero.PatternParsed)
+			duration := math.Str2Int64(parsed[2].Text()[1])
+			switch parsed[2].Text()[2] {
 			case "分钟":
 				//
 			case "小时":
@@ -173,8 +175,8 @@ func init() { // 插件主体
 				duration = 43199 // qq禁言最大时长为一个月
 			}
 			ctx.SetThisGroupBan(
-				math.Str2Int64(ctx.State["regex_matched"].([]string)[1]), // 要禁言的人的qq
-				duration*60, // 要禁言的时间（分钟）
+				math.Str2Int64(parsed[1].At()), // 要禁言的人的qq
+				duration*60,                    // 要禁言的时间（分钟）
 			)
 			ctx.SendChain(message.Text("小黑屋收留成功~"))
 		})
@@ -188,33 +190,25 @@ func init() { // 插件主体
 			ctx.SendChain(message.Text("小黑屋释放成功~"))
 		})
 	// 自闭禁言
-	engine.OnRegex(`^(我要自闭|禅定).*?([\d|\.]+)(.*)`, zero.OnlyGroup).SetBlock(true).
+	engine.OnRegex(`^(我要自闭|禅定).*?(\d+)(.*)`, zero.OnlyGroup).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
-			duration, err := strconv.ParseFloat(ctx.State["regex_matched"].([]string)[2], 64)
-			if err != nil {
-				return
-			}
+			duration := math.Str2Int64(ctx.State["regex_matched"].([]string)[2])
 			switch ctx.State["regex_matched"].([]string)[3] {
-			case "秒", "second", "seconds", "s":
-				break
 			case "分钟", "min", "mins", "m":
-				duration *= 60
+				break
 			case "小时", "hour", "hours", "h":
-				duration *= 60 * 60
-			case "天", "day", "days", "d":
-				duration *= 60 * 60 * 24
-			default:
 				duration *= 60
+			case "天", "day", "days", "d":
+				duration *= 60 * 24
+			default:
+				break
 			}
-			if int64(duration) == 0 {
-				return
-			}
-			if duration >= 2592000 {
-				duration = 2591999 // qq禁言最大时长为一个月
+			if duration >= 43200 {
+				duration = 43199 // qq禁言最大时长为一个月
 			}
 			ctx.SetThisGroupBan(
 				ctx.Event.UserID,
-				int64(duration), // 要自闭的时间（分钟）
+				duration*60, // 要自闭的时间（分钟）
 			)
 			ctx.SendChain(message.Text("那我就不手下留情了~"))
 		})
@@ -412,6 +406,12 @@ func init() { // 插件主体
 			ctx.SendLike(ctx.Event.UserID, 10)
 			ctx.SendChain(message.Reply(ctx.Event.MessageID), message.Text("给你赞了10下哦，记得回我~"))
 		})
+	// 群签到
+	engine.OnFullMatch("群签到", zero.OnlyGroup).SetBlock(true).Limit(ctxext.LimitByUser).
+		Handle(func(ctx *zero.Ctx) {
+			ctx.SetGroupSign(ctx.Event.GroupID)
+			ctx.SendChain(message.Text("群签到成功，可在手机端输入框中的打卡查看"))
+		})
 	facere := regexp.MustCompile(`\[CQ:face,id=(\d+)\]`)
 	// 给消息回应表情
 	engine.OnRegex(`^\[CQ:reply,id=(-?\d+)\].*回应表情\s*(.+)\s*$`, zero.AdminPermission, zero.OnlyGroup).SetBlock(true).
@@ -450,7 +450,7 @@ func init() { // 插件主体
 		Handle(func(ctx *zero.Ctx) {
 			if ctx.Event.NoticeType == "group_increase" && ctx.Event.SelfID != ctx.Event.UserID {
 				var w welcome
-				err := db.Find("welcome", &w, "where gid = "+strconv.FormatInt(ctx.Event.GroupID, 10))
+				err := db.Find("welcome", &w, "WHERE gid = ?", ctx.Event.GroupID)
 				if err == nil {
 					ctx.SendGroupMessage(ctx.Event.GroupID, message.ParseMessageFromString(welcometocq(ctx, w.Msg)))
 				} else {
@@ -502,21 +502,23 @@ func init() { // 插件主体
 		Handle(func(ctx *zero.Ctx) {
 			if ctx.Event.NoticeType == "group_decrease" {
 				var w welcome
-				err := db.Find("farewell", &w, "where gid = "+strconv.FormatInt(ctx.Event.GroupID, 10))
+				err := db.Find("farewell", &w, "WHERE gid = ?", ctx.Event.GroupID)
 				if err == nil {
-					ctx.SendGroupMessage(ctx.Event.GroupID, message.ParseMessageFromString(welcometocq(ctx, w.Msg)))
+					collectsend(ctx, message.ParseMessageFromString(welcometocq(ctx, w.Msg))...)
 				} else {
 					userid := ctx.Event.UserID
-					ctx.SendChain(message.Text(ctx.CardOrNickName(userid), "(", userid, ")", "退出了群聊..."))
+					collectsend(ctx, message.Text(ctx.CardOrNickName(userid), "(", userid, ")", "离开了我们..."))
 				}
 			}
 		})
 	// 设置欢迎语
 	engine.OnRegex(`^设置欢迎语([\s\S]*)$`, zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
+			welcomestring := ctx.State["regex_matched"].([]string)[1]
+			welcomestring = message.UnescapeCQCodeText(welcomestring)
 			w := &welcome{
 				GrpID: ctx.Event.GroupID,
-				Msg:   ctx.State["regex_matched"].([]string)[1],
+				Msg:   welcomestring,
 			}
 			err := db.Insert("welcome", w)
 			if err == nil {
@@ -529,7 +531,7 @@ func init() { // 插件主体
 	engine.OnFullMatch("测试欢迎语", zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			var w welcome
-			err := db.Find("welcome", &w, "where gid = "+strconv.FormatInt(ctx.Event.GroupID, 10))
+			err := db.Find("welcome", &w, "WHERE gid = ?", ctx.Event.GroupID)
 			if err == nil {
 				ctx.SendGroupMessage(ctx.Event.GroupID, message.ParseMessageFromString(welcometocq(ctx, w.Msg)))
 			} else {
@@ -539,9 +541,11 @@ func init() { // 插件主体
 	// 设置告别辞
 	engine.OnRegex(`^设置告别辞([\s\S]*)$`, zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
+			farewellstring := ctx.State["regex_matched"].([]string)[1]
+			farewellstring = message.UnescapeCQCodeText(farewellstring)
 			w := &welcome{
 				GrpID: ctx.Event.GroupID,
-				Msg:   ctx.State["regex_matched"].([]string)[1],
+				Msg:   farewellstring,
 			}
 			err := db.Insert("farewell", w)
 			if err == nil {
@@ -554,12 +558,12 @@ func init() { // 插件主体
 	engine.OnFullMatch("测试告别辞", zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			var w welcome
-			err := db.Find("farewell", &w, "where gid = "+strconv.FormatInt(ctx.Event.GroupID, 10))
+			err := db.Find("farewell", &w, "WHERE gid = ?", ctx.Event.GroupID)
 			if err == nil {
 				ctx.SendGroupMessage(ctx.Event.GroupID, message.ParseMessageFromString(welcometocq(ctx, w.Msg)))
 			} else {
 				userid := ctx.Event.UserID
-				ctx.SendChain(message.Text(ctx.CardOrNickName(userid), "(", userid, ")", "退出了群聊..."))
+				ctx.SendChain(message.Text(ctx.CardOrNickName(userid), "(", userid, ")", "离开了我们..."))
 			}
 		})
 	// 入群后验证开关
@@ -653,7 +657,7 @@ func init() { // 插件主体
 		if rsp.RetCode == 0 {
 			ctx.SendChain(message.Text(option, "成功"))
 		} else {
-			ctx.SendChain(message.Text(option, "失败, 信息: ", rsp.Msg, "解释: ", rsp.Wording))
+			ctx.SendChain(message.Text(option, "失败, 信息: ", rsp.Message, "解释: ", rsp.Wording))
 		}
 	})
 	engine.OnCommand("精华列表", zero.OnlyGroup, zero.AdminPermission).SetBlock(true).Limit(ctxext.LimitByUser).Handle(func(ctx *zero.Ctx) {
@@ -702,7 +706,7 @@ func init() { // 插件主体
 		if rsp.RetCode == 0 {
 			ctx.SendChain(message.Text("取消成功"))
 		} else {
-			ctx.SendChain(message.Text("取消失败, 信息: ", rsp.Msg, "解释: ", rsp.Wording))
+			ctx.SendChain(message.Text("取消失败, 信息: ", rsp.Message, "解释: ", rsp.Wording))
 		}
 	})
 }
@@ -721,5 +725,5 @@ func welcometocq(ctx *zero.Ctx, welcome string) string {
 	cqstring = strings.ReplaceAll(cqstring, "{uid}", uid)
 	cqstring = strings.ReplaceAll(cqstring, "{gid}", gid)
 	cqstring = strings.ReplaceAll(cqstring, "{groupname}", groupname)
-	return message.UnescapeCQCodeText(cqstring)
+	return cqstring
 }

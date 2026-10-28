@@ -14,7 +14,8 @@ import (
 	"github.com/FloatTech/AnimeAPI/wallet"
 	"github.com/FloatTech/floatbox/file"
 	"github.com/FloatTech/gg"
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
+	"github.com/FloatTech/gg/fio"
 	"github.com/FloatTech/rendercard"
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/img/text"
@@ -31,12 +32,12 @@ func floatstyle(a *scdata) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	back, err := gg.LoadImage(a.picfile)
+	back, err := fio.LoadImage(a.picfile)
 	if err != nil {
 		return nil, err
 	}
 	// 避免图片过大，最大 1280*720
-	back = imgfactory.Limit(back, 1280, 720)
+	back = factory.Limit(back, 1280, 720)
 	imgDX := back.Bounds().Dx()
 	imgDY := back.Bounds().Dy()
 	canvas := gg.NewContext(imgDX, imgDY)
@@ -62,7 +63,7 @@ func floatstyle(a *scdata) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	avatarf := imgfactory.Size(avatar, 200, 200)
+	avatarf := factory.Size(avatar, 200, 200)
 	canvas.DrawImage(avatarf.Circle(0).Image(), 120, 120)
 	// draw info(name,coin,etc)
 	canvas.SetRGB255(0, 0, 0)
@@ -133,12 +134,12 @@ func defaultstyle(a *scdata) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	back, err := gg.LoadImage(a.picfile)
+	back, err := fio.LoadImage(a.picfile)
 	if err != nil {
 		return nil, err
 	}
 	// 避免图片过大，最大 1280*720
-	back = imgfactory.Limit(back, 1280, 720)
+	back = factory.Limit(back, 1280, 720)
 	canvas := gg.NewContext(back.Bounds().Size().X, int(float64(back.Bounds().Size().Y)*1.7))
 	canvas.SetRGB(1, 1, 1)
 	canvas.Clear()
@@ -187,12 +188,12 @@ func aerostyle(a *scdata) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	back, err := gg.LoadImage(a.picfile)
+	back, err := fio.LoadImage(a.picfile)
 	if err != nil {
 		return nil, err
 	}
 	// 避免图片过大，最大 1280*720
-	back = imgfactory.Limit(back, 1280, 720)
+	back = factory.Limit(back, 1280, 720)
 	imgDX := back.Bounds().Dx()
 	imgDY := back.Bounds().Dy()
 	canvas := gg.NewContext(imgDX, imgDY)
@@ -239,7 +240,7 @@ func aerostyle(a *scdata) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	avatarf := imgfactory.Size(avatar, 100, 100)
+	avatarf := factory.Size(avatar, 100, 100)
 	canvas.DrawImage(avatarf.Circle(0).Image(), 30, 20)
 
 	canvas.DrawString(a.nickname, 140, 80)
@@ -286,8 +287,7 @@ func floatnewstyle(a *scdata) (img image.Image, err error) {
 	if err != nil {
 		return
 	}
-
-	back, err := gg.LoadImage(a.picfile)
+	back, err := fio.LoadImage(a.picfile)
 	if err != nil {
 		return
 	}
@@ -295,30 +295,27 @@ func floatnewstyle(a *scdata) (img image.Image, err error) {
 	bx, by := float64(back.Bounds().Dx()), float64(back.Bounds().Dy())
 
 	sc := 1280 / bx
-
-	colors := gg.TakeColor(back, 3)
+	var colors []color.RGBA
 
 	canvas := gg.NewContext(1280, 1280*int(by)/int(bx))
-
 	cw, ch := float64(canvas.W()), float64(canvas.H())
 
 	sch := ch * 6 / 10
 
 	var blurback, scbackimg, backshadowimg, avatarimg, avatarbackimg, avatarshadowimg, whitetext, blacktext image.Image
-	var wg sync.WaitGroup
-	wg.Add(8)
+	wg := &sync.WaitGroup{}
+	wg.Add(7)
+	scback := gg.NewContext(canvas.W(), canvas.H())
 
+	scback.ScaleAbout(sc, sc, cw/2, ch/2)
+	scback.DrawImageAnchored(back, canvas.W()/2, canvas.H()/2, 0.5, 0.5)
+	scback.Identity()
+
+	colors = gg.TakeThemeColorsKMeans(scback.Image(), 3)
 	go func() {
 		defer wg.Done()
-		scback := gg.NewContext(canvas.W(), canvas.H())
-		scback.ScaleAbout(sc, sc, cw/2, ch/2)
-		scback.DrawImageAnchored(back, canvas.W()/2, canvas.H()/2, 0.5, 0.5)
-		scback.Identity()
 
-		go func() {
-			defer wg.Done()
-			blurback = imaging.Blur(scback.Image(), 20)
-		}()
+		blurback = imaging.Blur(scback.Image(), 20)
 
 		scbackimg = rendercard.Fillet(scback.Image(), 12)
 	}()

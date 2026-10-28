@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/FloatTech/AnimeAPI/tl"
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
 
 	"github.com/FloatTech/floatbox/binary"
 	fcext "github.com/FloatTech/floatbox/ctxext"
@@ -22,7 +22,6 @@ import (
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
-	"github.com/wdvxdr1123/ZeroBot/extension/single"
 	"github.com/wdvxdr1123/ZeroBot/message"
 )
 
@@ -69,16 +68,7 @@ func init() {
 			"- 团队六阶猜单词\n" +
 			"- 团队七阶猜单词",
 		PublicDataFolder: "Wordle",
-	}).ApplySingle(single.New(
-		single.WithKeyFn(func(ctx *zero.Ctx) int64 { return ctx.Event.GroupID }),
-		single.WithPostFn[int64](func(ctx *zero.Ctx) {
-			ctx.Send(
-				message.ReplyWithMessage(ctx.Event.MessageID,
-					message.Text("已经有正在进行的游戏..."),
-				),
-			)
-		}),
-	))
+	}).ApplySingle(ctxext.NewGroupSingle("已经有正在进行的游戏..."))
 
 	en.OnRegex(`^(个人|团队)(五阶|六阶|七阶)?猜单词$`, zero.OnlyGroup, fcext.DoOnceOnSuccess(
 		func(ctx *zero.Ctx) bool {
@@ -235,10 +225,6 @@ func newWordleGame(target string) func(string) (bool, []byte, error) {
 				}
 			}
 			record = append(record, s)
-			if len(record) >= cap(record) {
-				err = errTimesRunOut
-				return
-			}
 		}
 		var side = 20
 		var space = 10
@@ -268,7 +254,11 @@ func newWordleGame(target string) func(string) (bool, []byte, error) {
 				}
 			}
 		}
-		data, err = imgfactory.ToBytes(ctx.Image())
+		data, err = factory.ToBytes(ctx.Image())
+		if len(record) >= cap(record) {
+			err = errTimesRunOut
+			return
+		}
 		return
 	}
 }

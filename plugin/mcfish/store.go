@@ -12,7 +12,7 @@ import (
 	"github.com/FloatTech/floatbox/file"
 	"github.com/FloatTech/floatbox/math"
 	"github.com/FloatTech/gg"
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/img/text"
 	"github.com/sirupsen/logrus"
@@ -60,7 +60,7 @@ func init() {
 			ctx.SendChain(message.Text("[ERROR at store.go.3]:", err))
 			return
 		}
-		pic, err := imgfactory.ToBytes(picImage)
+		pic, err := factory.ToBytes(picImage)
 		if err != nil {
 			ctx.SendChain(message.Text("[ERROR at store.go.4]:", err))
 			return
@@ -70,21 +70,24 @@ func init() {
 	engine.OnRegex(`^出售(`+strings.Join(thingList, "|")+`)\s*(\d*)$`, getdb, refreshFish).SetBlock(true).Limit(limitSet).Handle(func(ctx *zero.Ctx) {
 		uid := ctx.Event.UserID
 		thingName := ctx.State["regex_matched"].([]string)[1]
-		if strings.Contains(thingName, "竿") {
-			times, err := dbdata.checkCanSalesFor(uid, true)
-			if err != nil {
-				ctx.SendChain(message.Text("[ERROR at store.go.75]:", err))
-				return
-			}
-			if times <= 0 {
-				ctx.SendChain(message.Text("出售次数已达到上限,明天再来售卖吧"))
-				return
-			}
-		}
 		number, _ := strconv.Atoi(ctx.State["regex_matched"].([]string)[2])
 		if number == 0 || strings.Contains(thingName, "竿") {
 			number = 1
 		}
+
+		// 检测物品交易次数
+		if strings.Contains(thingName, "竿") {
+			number, err := dbdata.checkCanSalesFor(uid, thingName, number)
+			if err != nil {
+				ctx.SendChain(message.Text("[ERROR,查询购买资质失败]:", err))
+				return
+			}
+			if number <= 0 {
+				ctx.SendChain(message.Text("一天只能交易10把鱼竿,明天再来售卖吧"))
+				return
+			}
+		}
+
 		articles, err := dbdata.getUserThingInfo(uid, thingName)
 		if err != nil {
 			ctx.SendChain(message.Text("[ERROR at store.go.5]:", err))
@@ -157,7 +160,9 @@ func init() {
 			maintenance, _ := strconv.Atoi(poleInfo[1])
 			induceLevel, _ := strconv.Atoi(poleInfo[2])
 			favorLevel, _ := strconv.Atoi(poleInfo[3])
-			pice = (priceList[thingName] - (durationList[thingName] - durable) - maintenance*2 + induceLevel*600 + favorLevel*1800) * discountList[thingName] / 100
+			pice = (priceList[thingName] - (durationList[thingName] - durable) - maintenance*2 +
+				induceLevel*600*discountList["诱钓"]/100 +
+				favorLevel*1800*discountList["海之眷顾"]/100) * discountList[thingName] / 100
 		} else {
 			pice = priceList[thingName] * discountList[thingName] / 100
 		}
@@ -304,7 +309,13 @@ func init() {
 				logrus.Warnln(err)
 			}
 		}
-		ctx.Send(message.ReplyWithMessage(ctx.Event.MessageID, message.Text("出售成功,你赚到了", pice*number, msg)))
+		// 更新交易限制
+		err = dbdata.updateCanSalesFor(uid, thingName, number)
+		if err != nil {
+			ctx.SendChain(message.Text("[ERROR,记录鱼类交易数量失败，此次交易不记录]:", err))
+		}
+
+		ctx.Send(message.ReplyWithMessage(ctx.Event.MessageID, message.Text("成功出售", thingName, "：", number, "个", ",你赚到了", pice*number, msg)))
 	})
 	engine.OnRegex(`^出售所有垃圾`, getdb, refreshFish).SetBlock(true).Limit(limitSet).Handle(func(ctx *zero.Ctx) {
 		uid := ctx.Event.UserID
@@ -382,8 +393,14 @@ func init() {
 		}
 		ctx.Send(message.ReplyWithMessage(ctx.Event.MessageID, message.Text("出售成功,你赚到了", pice, msg)))
 	})
-	engine.OnRegex(`^购买(`+strings.Join(thingList, "|")+`)\s*(\d*)$`, getdb, refreshFish).SetBlock(true).Limit(limitSet).Handle(func(ctx *zero.Ctx) {
+	engine.OnRegex(`^购买(`+strings.Join(thingList, "|")+`|初始木竿)\s*(\d*)$`, getdb, refreshFish).SetBlock(true).Limit(limitSet).Handle(func(ctx *zero.Ctx) {
 		uid := ctx.Event.UserID
+		thingName := ctx.State["regex_matched"].([]string)[1]
+		number, _ := strconv.Atoi(ctx.State["regex_matched"].([]string)[2])
+		if number == 0 || strings.Contains(thingName, "竿") {
+			number = 1
+		}
+
 		numberOfPole, err := dbdata.getNumberFor(uid, "竿")
 		if err != nil {
 			ctx.SendChain(message.Text("[ERROR at store.go.9.3]:", err))
@@ -393,20 +410,24 @@ func init() {
 			ctx.SendChain(message.Text("你有", numberOfPole, "支鱼竿,大于50支的玩家不允许购买东西"))
 			return
 		}
-		buytimes, err := dbdata.checkCanSalesFor(uid, false)
+
+		// 检测物品交易次数
+		number, err = dbdata.checkCanSalesFor(uid, thingName, number)
 		if err != nil {
 			ctx.SendChain(message.Text("[ERROR at store.go.75]:", err))
 			return
 		}
-		if buytimes <= 0 {
-			ctx.SendChain(message.Text("出售次数已达到上限,明天再来购买吧"))
+		if number <= 0 {
+			var msg string
+			if strings.Contains(thingName, "竿") {
+				msg = "一天只能交易10把鱼竿,明天再来购买吧"
+			} else {
+				msg = "一天只能购买30次物品，明天再来吧~"
+			}
+			ctx.SendChain(message.Text(msg))
 			return
 		}
-		thingName := ctx.State["regex_matched"].([]string)[1]
-		number, _ := strconv.Atoi(ctx.State["regex_matched"].([]string)[2])
-		if number == 0 {
-			number = 1
-		}
+
 		thingInfos, err := dbdata.getStoreThingInfo(thingName)
 		if err != nil {
 			ctx.SendChain(message.Text("[ERROR at store.go.11]:", err))
@@ -448,7 +469,12 @@ func init() {
 				maintenance, _ := strconv.Atoi(poleInfo[1])
 				induceLevel, _ := strconv.Atoi(poleInfo[2])
 				favorLevel, _ := strconv.Atoi(poleInfo[3])
-				thingPice := (priceList[info.Name] - (durationList[info.Name] - durable) - maintenance*2 + induceLevel*600 + favorLevel*1800) * discountList[info.Name] / 100
+				thingPice := (priceList[info.Name] - (durationList[info.Name] - durable) - maintenance*2 +
+					induceLevel*600*discountList["诱钓"]/100 +
+					favorLevel*1800*discountList["海之眷顾"]/100) * discountList[info.Name] / 100
+				if strings.Contains(thingName, "初始木竿") {
+					thingPice = priceList["木竿"] + priceList["木竿"]*discountList["木竿"]/100
+				}
 				pice = append(pice, thingPice)
 			} else {
 				thingPice := priceList[info.Name] * discountList[info.Name] / 100
@@ -595,6 +621,9 @@ func init() {
 				Number:   1,
 				Other:    thing.Other,
 			}
+			if thingName == "初始木竿" {
+				newCommodity.Name = "木竿"
+			}
 		} else {
 			things, err1 := dbdata.getUserThingInfo(uid, thingName)
 			if err1 != nil {
@@ -621,6 +650,11 @@ func init() {
 			if err != nil {
 				logrus.Warnln(err)
 			}
+		}
+		// 更新交易限制
+		err = dbdata.updateCanSalesFor(uid, thingName, number)
+		if err != nil {
+			ctx.SendChain(message.Text("[ERROR,记录鱼类交易数量失败，此次交易不记录]:", err))
 		}
 		ctx.Send(message.ReplyWithMessage(ctx.Event.MessageID, message.Text("你用", price, "购买了", number, thingName)))
 	})
@@ -766,6 +800,9 @@ func drawStroeInfoImage(stroeInfo []store) (picImage image.Image, err error) {
 			induceLevel, _ := strconv.Atoi(poleInfo[2])
 			favorLevel, _ := strconv.Atoi(poleInfo[3])
 			pice = (priceList[info.Name] - (durationList[info.Name] - durable) - maintenance*2 + induceLevel*600 + favorLevel*1800) * discountList[info.Name] / 100
+			if strings.Contains(name, "初始木竿") {
+				pice = priceList["木竿"] + priceList["木竿"]*discountList["木竿"]/100
+			}
 		} else {
 			pice = priceList[info.Name] * discountList[info.Name] / 100
 		}

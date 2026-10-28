@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/fumiama/terasu/http2"
 	"github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -22,7 +21,6 @@ import (
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
-	"github.com/FloatTech/zbputils/img/pool"
 )
 
 const (
@@ -73,20 +71,10 @@ func init() { // 插件主体
 				for i := range illust.ImageUrls {
 					f := file.BOTPATH + "/" + illust.Path(i)
 					n := name + "_p" + strconv.Itoa(i)
-					var m *pool.Image
 					if file.IsNotExist(f) {
-						m, err = pool.GetImage(n)
-						if err == nil {
-							imgs = append(imgs, message.Image(m.String()))
-							continue
-						}
 						logrus.Debugln("[saucenao]开始下载", n)
 						logrus.Debugln("[saucenao]urls:", illust.ImageUrls)
 						err1 := illust.DownloadToCache(i)
-						if err1 == nil {
-							m.SetFile(f)
-							_, _ = m.Push(ctxext.SendToSelf(ctx), ctxext.GetMessage(ctx))
-						}
 						if err1 != nil {
 							logrus.Debugln("[saucenao]下载err:", err1)
 						}
@@ -145,7 +133,7 @@ func init() { // 插件主体
 									}
 								}
 							})
-							resp, err := http2.Head(result.Header.Thumbnail)
+							resp, err := http.Head(result.Header.Thumbnail)
 							msg := make(message.Message, 0, 3)
 							if s > 80.0 {
 								msg = append(msg, message.Text("我有把握是这个!\n"))

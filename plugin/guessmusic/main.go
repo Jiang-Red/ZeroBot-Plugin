@@ -9,13 +9,12 @@ import (
 	"time"
 
 	wyy "github.com/FloatTech/AnimeAPI/neteasemusic"
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
 	ctrl "github.com/FloatTech/zbpctrl"
 	"github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
 	"github.com/pkg/errors"
 	zero "github.com/wdvxdr1123/ZeroBot"
-	"github.com/wdvxdr1123/ZeroBot/extension/single"
 	"github.com/wdvxdr1123/ZeroBot/message"
 
 	// 图片输出
@@ -65,17 +64,7 @@ var (
 			"- 下载歌单[网易云歌单链接/ID]到[歌单名称]\n" +
 			"- 解除绑定 [歌单名称]",
 		PrivateDataFolder: "guessmusic",
-	}).ApplySingle(single.New(
-		single.WithKeyFn(func(ctx *zero.Ctx) int64 { return ctx.Event.GroupID }),
-		single.WithPostFn[int64](func(ctx *zero.Ctx) {
-			ctx.Break()
-			ctx.Send(
-				message.ReplyWithMessage(ctx.Event.MessageID,
-					message.Text("已经有正在进行的游戏..."),
-				),
-			)
-		}),
-	))
+	}).ApplySingle(ctxext.NewGroupSingle("已经有正在进行的游戏..."))
 	// 用于存放歌曲三个片段的缓存文件夹
 	cachePath = engine.DataFolder() + "cache/"
 	// 用于存放用户的配置
@@ -446,7 +435,7 @@ func init() {
 					canvas.DrawString("当前设置的默认歌单为: "+dlist.Name, 80, float64(85+20*j)-h)
 				}
 			}
-			data, err := imgfactory.ToBytes(canvas.Image())
+			data, err := factory.ToBytes(canvas.Image())
 			if err != nil {
 				ctx.SendChain(message.Text(serviceErr, err))
 				return
@@ -535,7 +524,7 @@ func getFileURLbyFileName(ctx *zero.Ctx, fileName string) (fileSearchName, fileU
 		for _, fileNameOflist := range files {
 			if strings.Contains(fileNameOflist.Get("file_name").String(), fileName) {
 				fileSearchName = fileNameOflist.Get("file_name").String()
-				fileURL = ctx.GetThisGroupFileUrl(fileNameOflist.Get("busid").Int(), fileNameOflist.Get("file_id").String())
+				fileURL = ctx.GetThisGroupFileURL(fileNameOflist.Get("busid").Int(), fileNameOflist.Get("file_id").String())
 				return
 			}
 		}
@@ -561,7 +550,7 @@ func getFileURLbyfolderID(ctx *zero.Ctx, fileName, folderid string) (fileSearchN
 		for _, fileNameOflist := range files {
 			if strings.Contains(fileNameOflist.Get("file_name").String(), fileName) {
 				fileSearchName = fileNameOflist.Get("file_name").String()
-				fileURL = ctx.GetThisGroupFileUrl(fileNameOflist.Get("busid").Int(), fileNameOflist.Get("file_id").String())
+				fileURL = ctx.GetThisGroupFileURL(fileNameOflist.Get("busid").Int(), fileNameOflist.Get("file_id").String())
 				return
 			}
 		}

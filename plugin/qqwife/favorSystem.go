@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/FloatTech/floatbox/math"
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
+	sql "github.com/FloatTech/sqlite"
 	control "github.com/FloatTech/zbputils/control"
 	"github.com/FloatTech/zbputils/ctxext"
 	zero "github.com/wdvxdr1123/ZeroBot"
@@ -31,9 +32,10 @@ type favorability struct {
 
 func init() {
 	// 好感度系统
-	engine.OnRegex(`^查好感度\s*(\[CQ:at,qq=)?(\d+)`, zero.OnlyGroup, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
+	engine.OnMessage(zero.NewPattern(nil).Text(`^查好感度`).At().AsRule(), zero.OnlyGroup, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
 		Handle(func(ctx *zero.Ctx) {
-			fiancee, _ := strconv.ParseInt(ctx.State["regex_matched"].([]string)[2], 10, 64)
+			patternParsed := ctx.State[zero.KeyPattern].([]zero.PatternParsed)
+			fiancee, _ := strconv.ParseInt(patternParsed[1].At(), 10, 64)
 			uid := ctx.Event.UserID
 			favor, err := 民政局.查好感度(uid, fiancee)
 			if err != nil {
@@ -47,12 +49,12 @@ func init() {
 			)
 		})
 	// 礼物系统
-	engine.OnRegex(`^买礼物给\[CQ:at,(?:\S*,)?qq=(\d+)(?:,\S*)?\]|(\d+))`, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
+	engine.OnMessage(zero.NewPattern(nil).Text(`^买礼物给`).At().AsRule(), zero.OnlyGroup, getdb).SetBlock(true).Limit(ctxext.LimitByUser).
 		Handle(func(ctx *zero.Ctx) {
 			gid := ctx.Event.GroupID
 			uid := ctx.Event.UserID
-			fiancee := ctx.State["regex_matched"].([]string)
-			gay, _ := strconv.ParseInt(fiancee[2]+fiancee[3], 10, 64)
+			patternParsed := ctx.State[zero.KeyPattern].([]zero.PatternParsed)
+			gay, _ := strconv.ParseInt(patternParsed[1].At(), 10, 64)
 			if gay == uid {
 				ctx.Send(message.ReplyWithMessage(ctx.Event.MessageID, message.At(uid), message.Text("你想给自己买什么礼物呢?")))
 				return
@@ -189,7 +191,7 @@ func init() {
 				canvas.Fill()
 				i++
 			}
-			data, err = imgfactory.ToBytes(canvas.Image())
+			data, err = factory.ToBytes(canvas.Image())
 			if err != nil {
 				ctx.SendChain(message.Text("[qqwife]ERROR: ", err))
 				return
@@ -214,7 +216,7 @@ func init() {
 			favor := favorability{}
 			delInfo := make([]string, 0, count*2)
 			favorInfo := make(map[string]int, count*2)
-			_ = 民政局.db.FindFor("favorability", &favor, "group by Userinfo", func() error {
+			_ = 民政局.db.FindFor("favorability", &favor, "GROUP BY Userinfo", func() error {
 				delInfo = append(delInfo, favor.Userinfo)
 				// 解析旧数据
 				userList := strings.Split(favor.Userinfo, "+")
@@ -236,15 +238,11 @@ func init() {
 				}
 				return nil
 			})
-			for _, updateinfo := range delInfo {
-				// 删除旧数据
-				err = 民政局.db.Del("favorability", "where Userinfo = '"+updateinfo+"'")
-				if err != nil {
-					userList := strings.Split(favor.Userinfo, "+")
-					uid1, _ := strconv.ParseInt(userList[0], 10, 64)
-					uid2, _ := strconv.ParseInt(userList[1], 10, 64)
-					ctx.SendChain(message.Text("[ERROR]: 删除", ctx.CardOrNickName(uid1), "和", ctx.CardOrNickName(uid2), "的好感度时发生了错误。\n错误信息:", err))
-				}
+			// 删除旧数据
+			q, s := sql.QuerySet("WHERE Userinfo", "IN", delInfo)
+			err = 民政局.db.Del("favorability", q, s...)
+			if err != nil {
+				ctx.SendChain(message.Text("[ERROR]: 删除好感度时发生了错误。\n错误信息:", err))
 			}
 			for userInfo, favor := range favorInfo {
 				favorInfo := favorability{
@@ -273,15 +271,15 @@ func (sql *婚姻登记) 查好感度(uid, target int64) (int, error) {
 	info := favorability{}
 	if uid > target {
 		userinfo := strconv.FormatInt(uid, 10) + "+" + strconv.FormatInt(target, 10)
-		err = sql.db.Find("favorability", &info, "where Userinfo is '"+userinfo+"'")
+		err = sql.db.Find("favorability", &info, "WHERE Userinfo = ?", userinfo)
 		if err != nil {
-			_ = sql.db.Find("favorability", &info, "where Userinfo glob '*"+userinfo+"*'")
+			_ = sql.db.Find("favorability", &info, "WHERE Userinfo glob ?", "*"+userinfo+"*")
 		}
 	} else {
 		userinfo := strconv.FormatInt(target, 10) + "+" + strconv.FormatInt(uid, 10)
-		err = sql.db.Find("favorability", &info, "where Userinfo is '"+userinfo+"'")
+		err = sql.db.Find("favorability", &info, "WHERE Userinfo = ?", userinfo)
 		if err != nil {
-			_ = sql.db.Find("favorability", &info, "where Userinfo glob '*"+userinfo+"*'")
+			_ = sql.db.Find("favorability", &info, "WHERE Userinfo glob ?", "*"+userinfo+"*")
 		}
 	}
 	return info.Favor, nil
@@ -304,7 +302,7 @@ func (sql *婚姻登记) getGroupFavorability(uid int64) (list favorList, err er
 	sql.RLock()
 	defer sql.RUnlock()
 	info := favorability{}
-	err = sql.db.FindFor("favorability", &info, "where Userinfo glob '*"+uidStr+"*'", func() error {
+	err = sql.db.FindFor("favorability", &info, "WHERE Userinfo glob ?", func() error {
 		var target string
 		userList := strings.Split(info.Userinfo, "+")
 		switch {
@@ -320,7 +318,7 @@ func (sql *婚姻登记) getGroupFavorability(uid int64) (list favorList, err er
 			Favor:    info.Favor,
 		})
 		return nil
-	})
+	}, "*"+uidStr+"*")
 	sort.Sort(list)
 	return
 }
@@ -338,15 +336,15 @@ func (sql *婚姻登记) 更新好感度(uid, target int64, score int) (favor in
 	targstr := strconv.FormatInt(target, 10)
 	if uid > target {
 		info.Userinfo = uidstr + "+" + targstr
-		err = sql.db.Find("favorability", &info, "where Userinfo is '"+info.Userinfo+"'")
+		err = sql.db.Find("favorability", &info, "WHERE Userinfo = ?", info.Userinfo)
 	} else {
 		info.Userinfo = targstr + "+" + uidstr
-		err = sql.db.Find("favorability", &info, "where Userinfo is '"+info.Userinfo+"'")
+		err = sql.db.Find("favorability", &info, "WHERE Userinfo = ?", info.Userinfo)
 	}
 	if err != nil {
-		err = sql.db.Find("favorability", &info, "where Userinfo glob '*"+targstr+"+"+uidstr+"*'")
+		err = sql.db.Find("favorability", &info, "WHERE Userinfo glob ?", "*"+targstr+"+"+uidstr+"*")
 		if err == nil { // 如果旧数据存在就删除旧数据
-			err = 民政局.db.Del("favorability", "where Userinfo = '"+info.Userinfo+"'")
+			err = 民政局.db.Del("favorability", "WHERE Userinfo = ?", info.Userinfo)
 		}
 	}
 	info.Favor += score

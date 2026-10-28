@@ -12,7 +12,7 @@ import (
 	"strconv"
 
 	"github.com/FloatTech/gg" // 注册了 jpg png gif
-	"github.com/FloatTech/imgfactory"
+	"github.com/FloatTech/gg/factory"
 	"github.com/sirupsen/logrus"
 	zero "github.com/wdvxdr1123/ZeroBot"
 	"github.com/wdvxdr1123/ZeroBot/message"
@@ -146,7 +146,7 @@ func init() {
 			digest := md5.Sum(helper.StringToBytes(zipfile + strconv.Itoa(index) + title + text))
 			cachefile := cache + hex.EncodeToString(digest[:])
 
-			err = pool.SendImageFromPool(cachefile, cachefile, func() error {
+			err = pool.SendImageFromPool(cachefile, func(cachefile string) error {
 				f, err := os.Create(cachefile)
 				if err != nil {
 					return err
@@ -154,7 +154,7 @@ func init() {
 				_, err = draw(background, fontdata, title, text, f)
 				_ = f.Close()
 				return err
-			}, ctxext.Send(ctx), ctxext.GetMessage(ctx))
+			}, ctxext.Send(ctx))
 			if err != nil {
 				ctx.SendChain(message.Text("ERROR: ", err))
 				return
@@ -231,7 +231,7 @@ func draw(back image.Image, fontdata []byte, title, txt string, f io.Writer) (in
 			}
 		}
 	}
-	return imgfactory.WriteTo(canvas.Image(), f)
+	return factory.WriteTo(canvas.Image(), f)
 }
 
 func offest(total, now int, distance float64) float64 {
