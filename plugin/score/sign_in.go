@@ -109,7 +109,6 @@ func init() {
 			// 如果签到时间是今天
 			ctx.SendChain(message.Reply(ctx.Event.MessageID), message.Text("今天你已经签到过了！"))
 			if file.IsExist(drawedFile) {
-
 				trySendImage(drawedFile, ctx)
 			}
 			return
