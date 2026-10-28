@@ -2,7 +2,10 @@ package phigros
 
 import (
 	"hash/crc64"
+	"image"
 	"image/color"
+	_ "image/jpeg"
+	_ "image/png"
 	"math"
 	"math/rand"
 	"os"
@@ -10,8 +13,18 @@ import (
 
 	"github.com/FloatTech/floatbox/binary"
 	"github.com/FloatTech/gg"
-	"github.com/FloatTech/imgfactory"
+	"github.com/disintegration/imaging"
 )
+
+func loadImage(path string) (image.Image, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	img, _, err := image.Decode(file)
+	return img, err
+}
 
 func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 	canvas := gg.NewContext(2360, 4780)
@@ -20,16 +33,16 @@ func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 
 	drawfile, _ := os.ReadDir(filepath + Illustration)
 
-	imgs, err := imgfactory.LoadFirstFrame(filepath+Illustration+drawfile[rand.Intn(len(drawfile))].Name(), 2048, 1080)
+	imgs, err := loadImage(filepath + Illustration + drawfile[rand.Intn(len(drawfile))].Name())
 	if err != nil {
 		return err
 	}
 
-	blured := imgs.Blur(30)
+	blured := imaging.Blur(imaging.Resize(imgs, 2048, 1080, imaging.Lanczos), 30)
 
 	var a float64 = 75
 
-	canvas.DrawImage(imgfactory.Size(blured.Image(), 9064, 4780).Image(), -3352, 0)
+	canvas.DrawImage(imaging.Resize(blured, 9064, 4780, imaging.Lanczos), -3352, 0)
 
 	draw4(canvas, a, 0, 166, 1324, 410)
 	canvas.SetRGBA255(0, 0, 0, 160)
@@ -67,11 +80,11 @@ func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 	canvas.DrawString("UI Designer: eastown", 494+(1312-fw7)/2, 4342+((332-fh6*3)/2)+(fh6*2)-15)
 	canvas.DrawString("*Phigros B19 Picture*", 494+(1312-fw8)/2, 4342+((((332-fh6*3)/4)*3)+(fh6*3))-15)
 
-	logo, err := gg.LoadPNG(filepath + Icon)
+	logo, err := loadImage(filepath + Icon)
 	if err != nil {
 		return err
 	}
-	canvas.DrawImage(imgfactory.Size(logo, 290, 290).Image(), 50, 216)
+	canvas.DrawImage(imaging.Resize(logo, 290, 290, imaging.Lanczos), 50, 216)
 
 	font, err = gg.LoadFontFace(filepath+Font, 90)
 	if err != nil {
@@ -91,11 +104,11 @@ func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 	canvas.DrawString("RankingScore: "+allrks, 1434, 192+((338-(fh9*3))/2)+(fh9*2)-14)
 	canvas.DrawString("ChallengeMode: ", 1434, 192+(((338-(fh9*3))/4)*3)+(fh9*3)-14)
 	if chal != "" {
-		chall, err := gg.LoadPNG(filepath + Challengemode + chal + ".png")
+		chall, err := loadImage(filepath + Challengemode + chal + ".png")
 		if err != nil {
 			return err
 		}
-		canvas.DrawImage(imgfactory.Size(chall, 208, 100).Image(), 1848, 404)
+		canvas.DrawImage(imaging.Resize(chall, 208, 100, imaging.Lanczos), 1848, 404)
 		chalnumlen, _ := canvas.MeasureString(chalnum)
 		canvas.DrawString(chalnum, 1882+(chalnumlen/2), 192+(((338-(fh9*3))/4)*3)+(fh9*3)-14)
 	}
@@ -180,14 +193,14 @@ func mix(canvas *gg.Context, i int64, a, x, y float64, list result) (err error) 
 	canvas.SetRGBA255(0, 0, 0, 160)
 	canvas.Fill()
 
-	var rankim *imgfactory.Factory
+	var rankim image.Image
 	// 画rank图标
 	if list.Rank != "" {
-		rankim, err = imgfactory.LoadFirstFrame(filepath+Rank+list.Rank+".png", 110, 110)
+		rankim, err = loadImage(filepath + Rank + list.Rank + ".png")
 		if err != nil {
 			return
 		}
-		canvas.DrawImage(rankim.Image(), int(x)+412, int(y)+88)
+		canvas.DrawImage(imaging.Resize(rankim, 110, 110, imaging.Lanczos), int(x)+412, int(y)+88)
 	}
 
 	// 画分数线
@@ -253,14 +266,14 @@ func mix(canvas *gg.Context, i int64, a, x, y float64, list result) (err error) 
 	draw4(canvas, a, x+68, y, 348, 238)
 	canvas.SetRGBA255(0, 0, 255, 0)
 	canvas.Fill()
-	var imgs *imgfactory.Factory
+	var imgs image.Image
 	if list.Songname != "" {
-		imgs, err = imgfactory.LoadFirstFrame(filepath+Illustration+list.Songname+".png", 2048, 1080)
+		imgs, err = loadImage(filepath + Illustration + list.Songname + ".png")
 		if err != nil {
 			return
 		}
 		cutted := cut4img(imgs, a)
-		canvas.DrawImage(imgfactory.Size(cutted.Image(), 436, 230).Image(), int(x)+6, int(y))
+		canvas.DrawImage(imaging.Resize(cutted, 436, 230, imaging.Lanczos), int(x)+6, int(y))
 	}
 
 	// 画定数背景
@@ -316,17 +329,17 @@ func mix(canvas *gg.Context, i int64, a, x, y float64, list result) (err error) 
 }
 
 // 将矩形图片裁切为平行四边形 angle 为角度
-func cut4img(imgs *imgfactory.Factory, angle float64) *imgfactory.Factory {
-	db := imgs.Image().Bounds()
-	dst := imgs
+func cut4img(imgs image.Image, angle float64) image.Image {
+	db := imgs.Bounds()
+	dst := imaging.Clone(imgs)
 	maxy := db.Max.Y
 	maxx := db.Max.X
 	sax := (float64(maxy) * (math.Cos(angle * math.Pi / 180.0)))
 	ax := sax
 	for autoadd := 1; autoadd < maxy; autoadd++ {
 		for ; ax > 0; ax-- {
-			dst.Image().Set(int(ax), autoadd, color.NRGBA{0, 0, 0, 0})
-			dst.Image().Set(maxx+int(-ax), maxy-autoadd, color.NRGBA{0, 0, 0, 0})
+			dst.Set(int(ax), autoadd, color.NRGBA{0, 0, 0, 0})
+			dst.Set(maxx+int(-ax), maxy-autoadd, color.NRGBA{0, 0, 0, 0})
 		}
 		ax = (float64(maxy-autoadd) * (math.Cos(angle * math.Pi / 180.0)))
 	}

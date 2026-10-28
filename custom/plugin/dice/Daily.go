@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	engine.OnRegex(`^[。.]jrrp`).SetBlock(true).
+	engine.OnRegex(`^[。.]jrrp`, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			uid := ctx.Event.UserID
 			jrrp := fcext.RandSenderPerDayN(uid, 100) + 1
@@ -22,7 +22,7 @@ func init() {
 				ctx.SendChain(message.At(uid), message.Text("阁下今日的人品值为", jrrp, "呢~"))
 			}
 		})
-	engine.OnRegex(`^设置jrrp([\s\S]*)$`, zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
+	engine.OnRegex(`^设置jrrp([\s\S]*)$`, zero.OnlyGroup, zero.AdminPermission, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			j := &strjrrp{
 				GrpID:   ctx.Event.GroupID,

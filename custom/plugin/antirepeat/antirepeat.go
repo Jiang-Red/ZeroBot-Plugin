@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	fcext "github.com/FloatTech/floatbox/ctxext"
 	"github.com/FloatTech/floatbox/math"
 	sql "github.com/FloatTech/sqlite"
 	ctrl "github.com/FloatTech/zbpctrl"
@@ -26,9 +27,10 @@ type result struct {
 }
 
 var (
-	db = &sql.Sqlite{}
-	sm syncx.Map[int64, *result]
-	en = control.Register("antirepeat", &ctrl.Options[*zero.Ctx]{
+	db     sql.Sqlite
+	sm     syncx.Map[int64, *result]
+	initDB zero.Rule
+	en     = control.Register("antirepeat", &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: true,
 		Brief:            "限制复读",
 		Help:             "- 设置复读禁言次数 <次数>\n- 设置复读禁言时间 <时间> 分钟\nTips: 默认复读3次禁言, 时长60分钟\n ",
@@ -37,18 +39,19 @@ var (
 )
 
 func init() {
-	go func() {
-		db.DBPath = en.DataFolder() + "antirepeat.db"
-		err := db.Open(time.Hour * 24)
-		if err != nil {
-			panic(err)
+	initDB = fcext.DoOnceOnSuccess(func(ctx *zero.Ctx) bool {
+		db = sql.New(en.DataFolder() + "antirepeat.db")
+		if err := db.Open(time.Hour * 24); err != nil {
+			ctx.SendChain(message.Text("ERROR: ", err))
+			return false
 		}
-		err = db.Create("data", &data{})
-		if err != nil {
-			panic(err)
+		if err := db.Create("data", &data{}); err != nil {
+			ctx.SendChain(message.Text("ERROR: ", err))
+			return false
 		}
-	}()
-	en.On(`message/group`, zero.OnlyGroup).SetBlock(false).
+		return true
+	})
+	en.On(`message/group`, zero.OnlyGroup, initDB).SetBlock(false).
 		Handle(func(ctx *zero.Ctx) {
 			gid := ctx.Event.GroupID
 			uid := ctx.Event.UserID
@@ -75,7 +78,7 @@ func init() {
 				ctx.SendChain(message.Text("因为你是第", r.LI+1, "个复读的，禁言", time, "分钟作为惩罚"))
 			}
 		})
-	en.OnRegex(`^(设置复读禁言次数\s*)([0-9]+)`, zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
+	en.OnRegex(`^(设置复读禁言次数\s*)([0-9]+)`, zero.OnlyGroup, zero.AdminPermission, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			gid := ctx.Event.GroupID
 			_, bantime := readdb(gid)
@@ -91,7 +94,7 @@ func init() {
 			}
 			ctx.SendChain(message.Text("当前群聊设置复读禁言次数为", d.RepeatLimit))
 		})
-	en.OnRegex(`^(设置复读禁言时间\s*)([0-9]+)分钟`, zero.OnlyGroup, zero.AdminPermission).SetBlock(true).
+	en.OnRegex(`^(设置复读禁言时间\s*)([0-9]+)分钟`, zero.OnlyGroup, zero.AdminPermission, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			gid := ctx.Event.GroupID
 			repeatlimit, _ := readdb(gid)

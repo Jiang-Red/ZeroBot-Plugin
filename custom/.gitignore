@@ -1,4 +1,5 @@
+*
 !.gitignore
 !doc.go
-!plugin
-*
+!plugin/
+!register.go

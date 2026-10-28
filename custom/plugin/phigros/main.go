@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	fcext "github.com/FloatTech/floatbox/ctxext"
 	"github.com/FloatTech/floatbox/file"
 	"github.com/FloatTech/floatbox/math"
 	sql "github.com/FloatTech/sqlite"
@@ -17,10 +18,11 @@ import (
 )
 
 var (
-	db  = &sql.Sqlite{}
-	sdb = &sql.Sqlite{}
-	mu  sync.RWMutex
-	en  = control.Register("phigros", &ctrl.Options[*zero.Ctx]{
+	db     sql.Sqlite
+	sdb    sql.Sqlite
+	mu     sync.RWMutex
+	initDB zero.Rule
+	en     = control.Register("phigros", &ctrl.Options[*zero.Ctx]{
 		DisableOnDefault: false,
 		Brief:            "Phigros查分",
 		Help: "/phi init 初始化存档\n" +
@@ -40,31 +42,33 @@ var (
 )
 
 func init() {
-	db.DBPath = en.DataFolder() + "data.db"
-	sdb.DBPath = en.DataFolder() + "songdata.db"
-	go func() {
-		err := db.Open(time.Hour * 24)
-		if err != nil {
-			panic(err)
+	initDB = fcext.DoOnceOnSuccess(func(ctx *zero.Ctx) bool {
+		db = sql.New(en.DataFolder() + "data.db")
+		sdb = sql.New(en.DataFolder() + "songdata.db")
+		if err := db.Open(time.Hour * 24); err != nil {
+			ctx.SendChain(message.Text("ERROR: ", err))
+			return false
 		}
-		err = sdb.Open(time.Hour * 24)
-		if err != nil {
-			panic(err)
+		if err := sdb.Open(time.Hour * 24); err != nil {
+			ctx.SendChain(message.Text("ERROR: ", err))
+			return false
 		}
-		err = db.Create("gamedata", &data{})
-		if err != nil {
-			panic(err)
+		for name, model := range map[string]struct {
+			db    *sql.Sqlite
+			model any
+		}{
+			"gamedata": {&db, &data{}},
+			"challen":  {&db, &challen{}},
+			"songdata": {&sdb, &songdata{}},
+		} {
+			if err := model.db.Create(name, model.model); err != nil {
+				ctx.SendChain(message.Text("ERROR: ", err))
+				return false
+			}
 		}
-		err = db.Create("challen", &challen{})
-		if err != nil {
-			panic(err)
-		}
-		err = sdb.Create("songdata", &songdata{})
-		if err != nil {
-			panic(err)
-		}
-	}()
-	en.OnFullMatch("/phi init").SetBlock(true).Handle(func(ctx *zero.Ctx) {
+		return true
+	})
+	en.OnFullMatch("/phi init", initDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		mu.Lock()
 		defer mu.Unlock()
 		uid := ctx.Event.UserID
@@ -78,7 +82,7 @@ func init() {
 		ctx.SendChain(message.Text("初始化成功!"))
 	})
 
-	en.OnFullMatch("/phi").SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	en.OnFullMatch("/phi", initDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		mu.Lock()
 		defer mu.Unlock()
 		uid := ctx.Event.UserID
@@ -147,7 +151,7 @@ func init() {
 		}
 		ctx.SendChain(message.Image("file:///" + file.BOTPATH + "/" + filepath + struid + "/output.png"))
 	})
-	en.OnRegex(`^/phi set (.*)`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	en.OnRegex(`^/phi set (.*)`, initDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		mu.Lock()
 		defer mu.Unlock()
 		name := ctx.State["regex_matched"].([]string)[1]
@@ -164,7 +168,7 @@ func init() {
 		}
 		ctx.SendChain(message.Text("已成功绑定", struid, "的游戏名字为:", name))
 	})
-	en.OnRegex(`^/phi chall (.*) ([0-9]{1,2})`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	en.OnRegex(`^/phi chall (.*) ([0-9]{1,2})`, initDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		mu.Lock()
 		defer mu.Unlock()
 		uid := ctx.Event.UserID
@@ -195,7 +199,7 @@ func init() {
 		}
 		ctx.SendChain(message.Text("已设置课题模式等级为", chall, " ", challnum))
 	})
-	en.OnRegex(`^/phi add (.*) ([a-z|A-Z]{2}) ([0-9]{2,3}\.?([0-9]{1,2})?) ([0-9]{6,7}) ?([0,1])?`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	en.OnRegex(`^/phi add (.*) ([a-z|A-Z]{2}) ([0-9]{2,3}\.?([0-9]{1,2})?) ([0-9]{6,7}) ?([0,1])?`, initDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		mu.Lock()
 		defer mu.Unlock()
 		songname := ctx.State["regex_matched"].([]string)[1]
@@ -260,7 +264,7 @@ func init() {
 		}
 		ctx.SendChain(message.Text("已设置", sd.Name, "为", score, " ", acc))
 	})
-	en.OnRegex(`^/phi del (.*)`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	en.OnRegex(`^/phi del (.*)`, initDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		mu.Lock()
 		defer mu.Unlock()
 		uid := ctx.Event.UserID
@@ -273,7 +277,7 @@ func init() {
 		}
 		ctx.SendChain(message.Text("已把", songname, "的数据删除了"))
 	})
-	en.OnRegex(`^/phi find (.*)`).SetBlock(true).Handle(func(ctx *zero.Ctx) {
+	en.OnRegex(`^/phi find (.*)`, initDB).SetBlock(true).Handle(func(ctx *zero.Ctx) {
 		songname := ctx.State["regex_matched"].([]string)[1]
 		var sd songdata
 		err := sdb.Find("songdata", &sd, "WHERE Name LIKE '"+songname+"%' OR ATName LIKE '"+songname+"%'")

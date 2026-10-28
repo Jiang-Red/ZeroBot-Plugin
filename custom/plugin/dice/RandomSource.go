@@ -14,7 +14,7 @@ type intn interface {
 }
 
 func init() {
-	engine.OnRegex(`^[。.][Rr][AaCc]\s*(([0-9]{1,2})#)?\s*(.*)\s+([0-9]{1,2})$`, zero.OnlyGroup).SetBlock(true).
+	engine.OnRegex(`^[。.][Rr][AaCc]\s*(([0-9]{1,2})#)?\s*(.*)\s+([0-9]{1,2})$`, zero.OnlyGroup, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			nickname := ctx.CardOrNickName(ctx.Event.UserID)
 			i := math.Str2Int64(ctx.State["regex_matched"].([]string)[2])
@@ -41,7 +41,7 @@ func init() {
 			}
 			ctx.SendChain(msg...)
 		})
-	engine.OnRegex(`^[。.]setcoc\s*([0-6]{1})`, zero.OnlyGroup).SetBlock(true).
+	engine.OnRegex(`^[。.]setcoc\s*([0-6]{1})`, zero.OnlyGroup, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			r := &rsl{
 				GrpID: ctx.Event.GroupID,
@@ -54,7 +54,7 @@ func init() {
 				ctx.SendChain(message.Text("出错啦: ", err))
 			}
 		})
-	engine.OnRegex(`^[。.]set\s*([0-9]+)`, zero.OnlyGroup).SetBlock(true).
+	engine.OnRegex(`^[。.]set\s*([0-9]+)`, zero.OnlyGroup, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			dint := math.Str2Int64(ctx.State["regex_matched"].([]string)[1])
 			if dint > 1000 {
@@ -82,7 +82,7 @@ func init() {
 				ctx.SendChain(message.Text("出错啦: ", err))
 			}
 		})
-	engine.OnRegex(`^[。.][Rr]\s*([0-9]+)?\s*[Dd]\s*([0-9]+)`, zero.OnlyGroup).SetBlock(true).
+	engine.OnRegex(`^[。.][Rr]\s*([0-9]+)?\s*[Dd]\s*([0-9]+)`, zero.OnlyGroup, initDB).SetBlock(true).
 		Handle(func(ctx *zero.Ctx) {
 			r1s := ctx.State["regex_matched"].([]string)[1]
 			var r1 int64 = 1
