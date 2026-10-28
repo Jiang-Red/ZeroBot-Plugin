@@ -4,8 +4,6 @@ import (
 	"hash/crc64"
 	"image"
 	"image/color"
-	_ "image/jpeg"
-	_ "image/png"
 	"math"
 	"math/rand"
 	"os"
@@ -13,18 +11,9 @@ import (
 
 	"github.com/FloatTech/floatbox/binary"
 	"github.com/FloatTech/gg"
+	"github.com/FloatTech/gg/fio"
 	"github.com/disintegration/imaging"
 )
-
-func loadImage(path string) (image.Image, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	img, _, err := image.Decode(file)
-	return img, err
-}
 
 func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 	canvas := gg.NewContext(2360, 4780)
@@ -33,7 +22,7 @@ func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 
 	drawfile, _ := os.ReadDir(filepath + Illustration)
 
-	imgs, err := loadImage(filepath + Illustration + drawfile[rand.Intn(len(drawfile))].Name())
+	imgs, err := fio.LoadPNG(filepath + Illustration + drawfile[rand.Intn(len(drawfile))].Name())
 	if err != nil {
 		return err
 	}
@@ -80,7 +69,7 @@ func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 	canvas.DrawString("UI Designer: eastown", 494+(1312-fw7)/2, 4342+((332-fh6*3)/2)+(fh6*2)-15)
 	canvas.DrawString("*Phigros B19 Picture*", 494+(1312-fw8)/2, 4342+((((332-fh6*3)/4)*3)+(fh6*3))-15)
 
-	logo, err := loadImage(filepath + Icon)
+	logo, err := fio.LoadPNG(filepath + Icon)
 	if err != nil {
 		return err
 	}
@@ -104,7 +93,7 @@ func renderb19(plname, allrks, chal, chalnum, uid string, list []result) error {
 	canvas.DrawString("RankingScore: "+allrks, 1434, 192+((338-(fh9*3))/2)+(fh9*2)-14)
 	canvas.DrawString("ChallengeMode: ", 1434, 192+(((338-(fh9*3))/4)*3)+(fh9*3)-14)
 	if chal != "" {
-		chall, err := loadImage(filepath + Challengemode + chal + ".png")
+		chall, err := fio.LoadPNG(filepath + Challengemode + chal + ".png")
 		if err != nil {
 			return err
 		}
@@ -196,7 +185,7 @@ func mix(canvas *gg.Context, i int64, a, x, y float64, list result) (err error) 
 	var rankim image.Image
 	// 画rank图标
 	if list.Rank != "" {
-		rankim, err = loadImage(filepath + Rank + list.Rank + ".png")
+		rankim, err = fio.LoadPNG(filepath + Rank + list.Rank + ".png")
 		if err != nil {
 			return
 		}
@@ -268,7 +257,7 @@ func mix(canvas *gg.Context, i int64, a, x, y float64, list result) (err error) 
 	canvas.Fill()
 	var imgs image.Image
 	if list.Songname != "" {
-		imgs, err = loadImage(filepath + Illustration + list.Songname + ".png")
+		imgs, err = fio.LoadPNG(filepath + Illustration + list.Songname + ".png")
 		if err != nil {
 			return
 		}

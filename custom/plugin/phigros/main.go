@@ -111,7 +111,7 @@ func init() {
 		}
 		var list = make([]result, 0, 22)
 		var r result
-		var m max
+		var m scoreRecord
 		err = db.Query("SELECT *, max(rksm) FROM ["+struid+"] WHERE rank='phi';", &m)
 		if err != nil {
 			list = append(list, result{})

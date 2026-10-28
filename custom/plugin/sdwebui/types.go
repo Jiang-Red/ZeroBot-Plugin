@@ -1,3 +1,4 @@
+// Package sdwebui integrates Stable Diffusion WebUI APIs.
 package sdwebui
 
 type txt2img struct {

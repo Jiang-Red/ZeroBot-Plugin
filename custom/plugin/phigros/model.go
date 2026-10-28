@@ -32,7 +32,7 @@ type songdata struct {
 	ATName string  `db:"ATName"`
 }
 
-type max struct {
+type scoreRecord struct {
 	ID       int64   `db:"id"`
 	Songname string  `db:"songname"` // eg. Shadow
 	Diff     string  `db:"diff"`     // AT

@@ -25,7 +25,7 @@ func init() {
 			" - 模拟xx条消息",
 	})
 	engine.OnFullMatchGroup([]string{"pause", "restart", "/kill"}, zero.OnlyToMe, zero.SuperUserPermission).SetBlock(true).
-		Handle(func(ctx *zero.Ctx) {
+		Handle(func(*zero.Ctx) {
 			os.Exit(0)
 		})
 	engine.OnRegex(`^模拟([0-9]+)条消息`, isfirstsuperusers()).SetBlock(true).
@@ -82,7 +82,7 @@ func init() {
 						}
 						if msg == "确定" {
 							ctx.SendChain(message.Text("正在发送..."))
-							zero.RangeBot(func(id int64, ctx *zero.Ctx) bool {
+							zero.RangeBot(func(_ int64, ctx *zero.Ctx) bool {
 								for _, g := range ctx.GetGroupList().Array() {
 									gid := g.Get("group_id").Int()
 									ctx.SendGroupMessage(gid, origin)

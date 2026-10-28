@@ -1,3 +1,4 @@
+// Package sdwebui integrates Stable Diffusion WebUI APIs.
 package sdwebui
 
 import (
